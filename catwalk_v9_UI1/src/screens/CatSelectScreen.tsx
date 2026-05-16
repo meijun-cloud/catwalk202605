@@ -1,0 +1,222 @@
+import React from 'react';
+import { useApp } from '../context/AppContext';
+import { ChevronLeft, ChevronRight, Check, Camera, Image as ImageIcon } from 'lucide-react';
+import { CAT_COLORS, CAT_POSES } from '../constants';
+import { motion } from 'motion/react';
+
+const CatSelectScreen: React.FC = () => {
+  const { reportDraft, updateDraft, navigateTo } = useApp();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const canContinue = !!reportDraft?.colorKey && !!reportDraft?.poseKey;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateDraft({ 
+          photo: reader.result as string,
+          colorKey: '', // Clear selection as suggested
+          poseKey: ''
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <div className="h-full flex flex-col bg-[#f8fafc] font-sans relative overflow-hidden">
+      {/* Hidden File Input */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        accept="image/*" 
+        className="hidden" 
+      />
+      {/* Background Illustration */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <img 
+          src="https://catwalk-v2.vercel.app/assets/report-flow/catwalk_report_flow_bg_city_street_2.jpg" 
+          className="w-full h-full object-cover" 
+          alt="Background" 
+        />
+        {/* Bottom Soft White Misty Gradient */}
+        <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-t from-white via-white/60 to-transparent opacity-80" />
+        {/* Edge blurring for softness */}
+        <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px]" />
+      </div>
+
+      {/* Main Content - Scrollable */}
+      <main className="flex-1 overflow-y-auto z-10 no-scrollbar pb-48">
+        {/* Header - Moved inside scrollable main */}
+        <header className="px-6 pt-12 pb-6 flex-shrink-0">
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={() => navigateTo('Map')} className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-gray-800 transition-transform active:scale-90">
+              <ChevronLeft size={24} />
+            </button>
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">回報流程</span>
+              <div className="flex items-center gap-1 mt-1">
+                <div className="w-8 h-1.5 bg-blue-500 rounded-full" />
+                <div className="w-8 h-1.5 bg-gray-200 rounded-full" />
+                <div className="w-8 h-1.5 bg-gray-200 rounded-full" />
+                <div className="w-8 h-1.5 bg-gray-200 rounded-full" />
+                <span className="text-xs font-black text-gray-400 ml-2">1 / 4</span>
+              </div>
+            </div>
+            <div className="w-10" />
+          </div>
+          <h1 className="text-[32px] font-black text-gray-800 text-center tracking-tighter leading-none">選擇花色與姿勢✨</h1>
+          <p className="text-sm text-gray-400 text-center mt-1">請依照照片選擇最接近的選項</p>
+        </header>
+
+        <div className="px-5 space-y-6">
+          {/* Photo Preview - Editable */}
+          <section className="relative w-full aspect-video rounded-3xl overflow-hidden shadow-2xl border-4 border-white group">
+            <img 
+              src={reportDraft?.photo || 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600'} 
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
+              alt="Preview" 
+            />
+            <div className="absolute top-4 left-4 px-3 py-1 bg-black/40 backdrop-blur-md rounded-full text-white text-[10px] font-bold tracking-widest uppercase">照片預覽</div>
+            
+            {/* Buttons Container */}
+            <div className="absolute top-4 right-4 flex flex-col gap-3 z-20">
+              {/* Retake Button */}
+              <button 
+                onClick={() => {
+                  updateDraft({ colorKey: '', poseKey: '' });
+                  navigateTo('MockCamera');
+                }}
+                className="w-10 h-10 bg-white shadow-lg rounded-full flex items-center justify-center text-blue-500 transition-all hover:scale-110 active:scale-95 group-hover:ring-4 ring-blue-500/20"
+                title="重新拍攝"
+              >
+                <Camera size={20} />
+              </button>
+              
+              {/* Album Button */}
+              <button 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-10 h-10 bg-white shadow-lg rounded-full flex items-center justify-center text-indigo-500 transition-all hover:scale-110 active:scale-95 group-hover:ring-4 ring-indigo-500/20"
+                title="從相簿選取"
+              >
+                <ImageIcon size={20} />
+              </button>
+            </div>
+            
+            <div className="absolute bottom-4 right-4 flex flex-col items-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              <div className="px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-white/50 text-[10px] font-black text-blue-500 flex items-center gap-1">
+                <Camera size={10} /> 重新拍攝
+              </div>
+              <div className="px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-xl shadow-md border border-white/50 text-[10px] font-black text-indigo-500 flex items-center gap-1">
+                <ImageIcon size={10} /> 從相簿選取
+              </div>
+            </div>
+            
+            {/* Dark gradient overlay on hover */}
+            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+          </section>
+
+        {/* Section A: Colors */}
+        <section className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/50">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-2 h-2 bg-blue-500 rounded-full" />
+            <h2 className="text-sm font-bold text-gray-800">A 請選擇花色 <span className="ml-2 text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full uppercase">必填</span></h2>
+          </div>
+          
+          <div className="grid grid-cols-4 gap-3">
+            {CAT_COLORS.map(color => (
+              <button
+                key={color.key}
+                onClick={() => updateDraft({ colorKey: color.key })}
+                className={`flex flex-col items-center gap-2 p-2 rounded-2xl transition-all duration-300 relative ${reportDraft?.colorKey === color.key ? 'bg-blue-50 shadow-inner' : 'hover:bg-gray-50'}`}
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-transform duration-300 ${reportDraft?.colorKey === color.key ? 'scale-110' : ''}`}>
+                  {/* Emoji as placeholder icon */}
+                  {color.key === 'black_white' && '🐄'}
+                  {color.key === 'orange' && '🐈'}
+                  {color.key === 'white' && '🥛'}
+                  {color.key === 'gray' && '🐭'}
+                  {color.key === 'black' && '🐈‍⬛'}
+                  {color.key === 'calico' && '🐆'}
+                  {color.key === 'tortoiseshell' && '🦕'}
+                  {color.key === 'tabby' && '🐅'}
+                  {color.key === 'siamese' && '💂'}
+                  {color.key === 'white_tabby' && '🦓'}
+                  {color.key === 'orange_white' && '🦊'}
+                  {color.key === 'brown_white' && '🥐'}
+                </div>
+                <span className={`text-[10px] font-bold text-center ${reportDraft?.colorKey === color.key ? 'text-blue-600' : 'text-gray-500'}`}>{color.label}</span>
+                {reportDraft?.colorKey === color.key && (
+                  <div className="absolute top-1 right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center border border-white">
+                    <Check size={8} className="text-white" strokeWidth={4} />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Section B: Poses */}
+        <section className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/50">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-2 h-2 bg-blue-500 rounded-full" />
+            <h2 className="text-sm font-bold text-gray-800">B 請選擇姿勢 <span className="ml-2 text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full uppercase">必填</span></h2>
+          </div>
+
+          <div className="grid grid-cols-4 gap-3">
+            {CAT_POSES.map(pose => (
+              <button
+                key={pose.key}
+                onClick={() => updateDraft({ poseKey: pose.key })}
+                className={`flex flex-col items-center gap-2 p-2 rounded-2xl transition-all duration-300 relative ${reportDraft?.poseKey === pose.key ? 'bg-blue-50 shadow-inner' : 'hover:bg-gray-50'}`}
+              >
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-transform duration-300 ${reportDraft?.poseKey === pose.key ? 'scale-110' : ''}`}>
+                  {pose.key === 'basking' && '☀️'}
+                  {pose.key === 'curled_sleep' && '🌙'}
+                  {pose.key === 'walking' && '🐾'}
+                  {pose.key === 'grooming' && '🛁'}
+                  {pose.key === 'alert_standing' && '👂'}
+                  {pose.key === 'sitting' && '🛋️'}
+                  {pose.key === 'eating' && '🍱'}
+                </div>
+                <span className={`text-[10px] font-bold text-center ${reportDraft?.poseKey === pose.key ? 'text-blue-600' : 'text-gray-500'}`}>{pose.label}</span>
+                {reportDraft?.poseKey === pose.key && (
+                  <div className="absolute top-1 right-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center border border-white">
+                    <Check size={8} className="text-white" strokeWidth={4} />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <p className="text-[10px] text-center text-gray-400">ℹ️ 兩項皆為必填，完成後才能進入下一步</p>
+        </div>
+      </main>
+
+      {/* Footer Actions */}
+      <footer className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-white via-white/90 to-transparent z-40 flex gap-4">
+        <button 
+          onClick={() => navigateTo('Map')}
+          className="flex-1 h-14 rounded-full border border-gray-100 bg-white shadow-xl flex items-center justify-center gap-2 text-gray-400 font-bold"
+        >
+          <ChevronLeft size={20} />
+          <span>上一步</span>
+        </button>
+        <button 
+          disabled={!canContinue}
+          onClick={() => navigateTo('Environment')}
+          className={`flex-[2] h-14 rounded-full flex items-center justify-center gap-2 text-white font-black text-lg transition-all duration-300 shadow-2xl ${canContinue ? 'bg-blue-500 shadow-blue-500/30' : 'bg-gray-300 shadow-none grayscale pointer-events-none'}`}
+        >
+          <span>下一步</span>
+          <ChevronRight size={20} strokeWidth={3} />
+        </button>
+      </footer>
+    </div>
+  );
+};
+
+export default CatSelectScreen;
