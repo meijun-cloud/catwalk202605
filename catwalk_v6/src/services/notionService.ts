@@ -1,6 +1,3 @@
-// ===== Notion API 服務層 =====
-// 所有 Notion 讀寫都走這個檔案，不直接在 API routes 裡呼叫 Notion
-
 const NOTION_API_KEY = process.env.NOTION_API_KEY!;
 const USERS_DB = process.env.NOTION_USERS_DB_ID!;
 const REPORTS_DB = process.env.NOTION_REPORTS_DB_ID!;
@@ -12,15 +9,10 @@ const headers = {
   'Notion-Version': '2022-06-28',
 };
 
-// ---- Users ----
-
 export async function getUserByNickname(nickname: string) {
   const res = await fetch(`https://api.notion.com/v1/databases/${USERS_DB}/query`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      filter: { property: 'nickname', title: { equals: nickname } },
-    }),
+    method: 'POST', headers,
+    body: JSON.stringify({ filter: { property: 'nickname', title: { equals: nickname } } }),
   });
   const data = await res.json();
   return data.results?.[0] ?? null;
@@ -28,8 +20,7 @@ export async function getUserByNickname(nickname: string) {
 
 export async function createUser(nickname: string, email: string) {
   const res = await fetch('https://api.notion.com/v1/pages', {
-    method: 'POST',
-    headers,
+    method: 'POST', headers,
     body: JSON.stringify({
       parent: { database_id: USERS_DB },
       properties: {
@@ -45,35 +36,22 @@ export async function createUser(nickname: string, email: string) {
 
 export async function updateGpsPermission(pageId: string, granted: boolean) {
   await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify({
-      properties: { gps_permission: { checkbox: granted } },
-    }),
-  });
-}
-  await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
-    method: 'PATCH',
-    headers,
-    body: JSON.stringify({
-      properties: { total_xp: { number: totalXp } },
-    }),
+    method: 'PATCH', headers,
+    body: JSON.stringify({ properties: { gps_permission: { checkbox: granted } } }),
   });
 }
 
-// ---- Reports ----
+export async function updateUserXp(pageId: string, totalXp: number) {
+  await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
+    method: 'PATCH', headers,
+    body: JSON.stringify({ properties: { total_xp: { number: totalXp } } }),
+  });
+}
 
 export async function createReport(data: {
-  reportId: string;
-  userNickname: string;
-  photoUrl: string;
-  latitude: number;
-  longitude: number;
-  colorKey: string;
-  pose: string;
-  environment: string;
-  catCount: string;
-  xpEarned: number;
+  reportId: string; userNickname: string; photoUrl: string;
+  latitude: number; longitude: number; colorKey: string;
+  pose: string; environment: string; catCount: string; xpEarned: number;
 }) {
   const properties: Record<string, any> = {
     report_id: { title: [{ text: { content: data.reportId } }] },
@@ -90,8 +68,7 @@ export async function createReport(data: {
     properties.photo = { url: data.photoUrl };
   }
   const res = await fetch('https://api.notion.com/v1/pages', {
-    method: 'POST',
-    headers,
+    method: 'POST', headers,
     body: JSON.stringify({ parent: { database_id: REPORTS_DB }, properties }),
   });
   const json = await res.json();
@@ -101,8 +78,7 @@ export async function createReport(data: {
 
 export async function getReportsByNickname(nickname: string) {
   const res = await fetch(`https://api.notion.com/v1/databases/${REPORTS_DB}/query`, {
-    method: 'POST',
-    headers,
+    method: 'POST', headers,
     body: JSON.stringify({
       filter: { property: 'user_nickname', rich_text: { equals: nickname } },
       sorts: [{ timestamp: 'created_time', direction: 'descending' }],
@@ -112,41 +88,29 @@ export async function getReportsByNickname(nickname: string) {
   return data.results ?? [];
 }
 
-// 取得所有其他人的回報（用於地圖藍點，已 100m 模糊化）
 export async function getAllReportsForMap() {
   const res = await fetch(`https://api.notion.com/v1/databases/${REPORTS_DB}/query`, {
-    method: 'POST',
-    headers,
+    method: 'POST', headers,
     body: JSON.stringify({ page_size: 100 }),
   });
   const data = await res.json();
   return data.results ?? [];
 }
 
-// ---- DexUnlocks ----
-
 export async function getDexByNickname(nickname: string) {
   const res = await fetch(`https://api.notion.com/v1/databases/${DEX_DB}/query`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      filter: { property: 'user_nickname', rich_text: { equals: nickname } },
-    }),
+    method: 'POST', headers,
+    body: JSON.stringify({ filter: { property: 'user_nickname', rich_text: { equals: nickname } } }),
   });
   const data = await res.json();
   return data.results ?? [];
 }
 
 export async function createDexUnlock(data: {
-  unlockId: string;
-  userNickname: string;
-  colorKey: string;
-  pose: string;
-  unlockedAt: string;
+  unlockId: string; userNickname: string; colorKey: string; pose: string; unlockedAt: string;
 }) {
   await fetch('https://api.notion.com/v1/pages', {
-    method: 'POST',
-    headers,
+    method: 'POST', headers,
     body: JSON.stringify({
       parent: { database_id: DEX_DB },
       properties: {
