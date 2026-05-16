@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
-// 告訴 Next.js 這個 route 不用內建的 bodyParser，改用 streaming
-export const config = { api: { bodyParser: false } };
-
-// Vercel Hobby 上傳限制提升到 4.5MB
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
@@ -30,7 +26,7 @@ export async function POST(req: NextRequest) {
     const file = formData.get('file') as File;
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 });
 
-    console.log(`File size: ${file.size} bytes, type: ${file.type}`);
+    console.log(`File size: ${file.size} bytes`);
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
