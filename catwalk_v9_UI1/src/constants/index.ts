@@ -1,4 +1,4 @@
-import { CatColor, CatPose, Environment, CatCount, Level } from './types';
+import { CatColor, CatPose, Environment, CatCount, Level } from '../types';
 
 export const CAT_COLORS: CatColor[] = [
   { key: 'black_white', label: '黑白貓', rarity: 'common', xpBonus: 0 },
