@@ -63,11 +63,25 @@ const DexScreen: React.FC = () => {
       }))
     );
 
-  // 已解鎖置頂排序
+  // 排序邏輯：全部 → 已解鎖依解鎖時間置頂，個別花色 → 依姿勢順序
+  const POSE_ORDER = ['basking', 'curled_sleep', 'walking', 'grooming', 'alert_standing', 'sitting', 'eating'];
   const filteredEntries = filteredEntriesRaw.slice().sort((a, b) => {
-    if (a.isUnlocked && !b.isUnlocked) return -1;
-    if (!a.isUnlocked && b.isUnlocked) return 1;
-    return 0;
+    if (!selectedColorKey) {
+      // 全部：已解鎖置頂，再依解鎖時間排序
+      if (a.isUnlocked && !b.isUnlocked) return -1;
+      if (!a.isUnlocked && b.isUnlocked) return 1;
+      if (a.isUnlocked && b.isUnlocked) {
+        const aUnlock = Array.isArray(dexUnlocks) ? dexUnlocks.find(d => d.colorKey === a.colorKey && d.poseKey === a.poseKey) : null;
+        const bUnlock = Array.isArray(dexUnlocks) ? dexUnlocks.find(d => d.colorKey === b.colorKey && d.poseKey === b.poseKey) : null;
+        const aTime = aUnlock?.unlockedAt ? new Date(aUnlock.unlockedAt).getTime() : 0;
+        const bTime = bUnlock?.unlockedAt ? new Date(bUnlock.unlockedAt).getTime() : 0;
+        return bTime - aTime; // 最新解鎖的排最前
+      }
+      return 0;
+    } else {
+      // 個別花色：依姿勢順序排序
+      return POSE_ORDER.indexOf(a.poseKey) - POSE_ORDER.indexOf(b.poseKey);
+    }
   });
   const displayedUnlockedCount = filteredEntries.filter(e => e.isUnlocked).length;
   const displayedTotalCount = filteredEntries.length;
@@ -114,7 +128,7 @@ const DexScreen: React.FC = () => {
                 <span className="text-xs font-black text-gray-700 tracking-tight">收藏進度</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-black text-gray-800">{unlockedCount}</span>
+                <span className="text-3xl font-black text-gray-800">{displayedUnlockedCount}</span>
                 <span className="text-xs font-bold text-gray-400">/ {totalEntries}</span>
               </div>
               <div className="mt-1 flex items-center gap-2">

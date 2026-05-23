@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Map, MapPin, BookOpen, Camera, Share2, Sparkles, ChevronRight, Search } from 'lucide-react';
 import { CAT_COLORS, CAT_POSES, LEVELS } from '../constants';
@@ -11,6 +11,25 @@ const ResultScreen: React.FC = () => {
   const { lastReport, user, navigateTo, setHighlightedDexEntry } = useApp();
 
   if (!lastReport) return null;
+
+  const [locationName, setLocationName] = useState('台北市中正區');
+
+  useEffect(() => {
+    if (lastReport?.location?.latitude && lastReport?.location?.longitude) {
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lastReport.location.latitude}&lon=${lastReport.location.longitude}&format=json&accept-language=zh-TW`, {
+        headers: { 'User-Agent': 'CatwalkApp/1.0' }
+      })
+        .then(r => r.json())
+        .then(data => {
+          const addr = data.address;
+          const city = addr.city || addr.county || '';
+          const district = addr.city_district || addr.suburb || addr.town || '';
+          if (city && district) setLocationName(`${city}${district}`);
+          else if (city) setLocationName(city);
+        })
+        .catch(() => {});
+    }
+  }, [lastReport?.location?.latitude, lastReport?.location?.longitude]);
 
   const color = CAT_COLORS.find(c => c.key === lastReport.colorKey);
   const pose = CAT_POSES.find(p => p.key === lastReport.poseKey);
@@ -119,7 +138,7 @@ const ResultScreen: React.FC = () => {
                     <h2 className="text-2xl font-black text-white leading-tight drop-shadow-lg">{color?.label} × {pose?.label} 🐾</h2>
                     <div className="flex items-center gap-1.5 text-white/90 text-[10px] font-black uppercase tracking-[0.1em] bg-black/30 backdrop-blur-md px-3 py-1 rounded-full w-fit border border-white/20">
                       <MapPin size={10} className="text-blue-400" />
-                      {lastReport.location ? `台北市區域 (${lastReport.location.latitude?.toFixed(4) ?? '?'},${lastReport.location.longitude?.toFixed(4) ?? '?'})` : '台北市中正區'}
+                      {locationName}
                     </div>
                  </div>
                  <div className="bg-white/95 backdrop-blur-md p-4 rounded-[28px] shadow-2xl flex flex-col items-center border border-white shrink-0">
@@ -173,12 +192,18 @@ const ResultScreen: React.FC = () => {
 
             <div className="flex items-center gap-6">
               <div className="relative">
-                <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg border-4 border-white bg-gray-100">
+                <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg border-4 border-white bg-gray-100 relative">
+                  <img
+                    src={user.avatarUrl}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://catwalk-v2.vercel.app/assets/avatars/calico.png'; }}
+                  />
                   <img
                     src={`https://catwalk-v2.vercel.app/assets/profile-page/badges/rank_badge_lv${String(user.currentLevel).padStart(2, '0')}.png`}
                     alt={`Lv${user.currentLevel}`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://catwalk-v2.vercel.app/assets/profile-page/badges/rank_badge_lv01.png'; }}
+                    className="absolute inset-0 w-full h-full object-cover opacity-0"
+                    onError={() => {}}
                   />
                 </div>
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Rank</div>

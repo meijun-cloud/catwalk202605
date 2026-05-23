@@ -134,19 +134,26 @@ const CatSelectScreen: React.FC = () => {
                 className={`flex flex-col items-center gap-2 p-2 rounded-2xl transition-all duration-300 relative ${reportDraft?.colorKey === color.key ? 'bg-blue-50 shadow-inner' : 'hover:bg-gray-50'}`}
               >
                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl transition-transform duration-300 ${reportDraft?.colorKey === color.key ? 'scale-110' : ''}`}>
-                  {/* Emoji as placeholder icon */}
-                  {color.key === 'black_white' && '🐄'}
-                  {color.key === 'orange' && '🐈'}
-                  {color.key === 'white' && '🥛'}
-                  {color.key === 'gray' && '🐭'}
-                  {color.key === 'black' && '🐈‍⬛'}
-                  {color.key === 'calico' && '🐆'}
-                  {color.key === 'tortoiseshell' && '🦕'}
-                  {color.key === 'tabby' && '🐅'}
-                  {color.key === 'siamese' && '💂'}
-                  {color.key === 'white_tabby' && '🦓'}
-                  {color.key === 'orange_white' && '🦊'}
-                  {color.key === 'brown_white' && '🥐'}
+                  {/* 使用真實貓咪圖片 */}
+                  <img
+                    src={`https://catwalk-v2.vercel.app/assets/collection-page/${
+                      color.key === 'black_white' ? 'black-white/black_white_sit-idle' :
+                      color.key === 'orange' ? 'orange/orange_sit-idle' :
+                      color.key === 'white' ? 'white/white_sit-idle' :
+                      color.key === 'gray' ? 'gray/gray_sit-idle' :
+                      color.key === 'black' ? 'black/black_sit-idle' :
+                      color.key === 'calico' ? 'calico/calico_sit-idle' :
+                      color.key === 'tortoiseshell' ? 'tortoiseshell/tortoiseshell_sit-idle' :
+                      color.key === 'tabby' ? 'tabby/tabby_sit-idle' :
+                      color.key === 'siamese' ? 'siamese/siamese_sit-idle' :
+                      color.key === 'white_tabby' ? 'tabby-white/white_tabby_sit-idle' :
+                      color.key === 'orange_white' ? 'orange-white/orange_white_sit-idle' :
+                      'brown-white/brown_white_sit-idle'
+                    }.jpg`}
+                    alt={color.label}
+                    className="w-full h-full object-cover rounded-xl"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display='none'; }}
+                  />
                 </div>
                 <span className={`text-[10px] font-bold text-center ${reportDraft?.colorKey === color.key ? 'text-blue-600' : 'text-gray-500'}`}>{color.label}</span>
                 {reportDraft?.colorKey === color.key && (
