@@ -218,18 +218,17 @@ const MapScreen: React.FC = () => {
       <div
         onClick={() => setIsHintExpanded(!isHintExpanded)}
         className="absolute bottom-32 left-5 z-40 bg-white/90 backdrop-blur-xl rounded-[28px] shadow-xl border border-white/60 cursor-pointer overflow-hidden transition-all duration-300"
-        style={{ width: isHintExpanded ? 210 : 100 }}
+        style={{ width: isHintExpanded ? 240 : 'auto', whiteSpace: 'nowrap' }}
       >
         <div className="p-3 px-4">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5">
             <span className="text-yellow-400 text-xs">✨</span>
-            <h3 className="text-sm font-black text-gray-800">小提示</h3>
-            <ChevronRight size={12} className={`text-gray-300 ml-auto transition-transform ${isHintExpanded ? 'rotate-90' : ''}`} />
+            <h3 className="text-sm font-black text-gray-800 whitespace-nowrap">小提示</h3>
+            <ChevronRight size={12} className={`text-gray-300 transition-transform ${isHintExpanded ? 'rotate-90' : ''}`} />
           </div>
           {isHintExpanded && (
-            <p className="text-[11px] font-bold text-gray-500 leading-relaxed mt-1.5">
-              <span className="text-blue-500">藍點</span> 是貓咪可能出沒地，<br />
-              <span className="text-yellow-500">黃點</span> 是你的回報！
+            <p className="text-[11px] font-bold text-gray-500 leading-relaxed mt-1.5 whitespace-nowrap">
+              <span className="text-blue-500">藍點</span> 是貓咪可能出沒地，<span className="text-yellow-500">黃點</span> 是你的回報！
             </p>
           )}
         </div>

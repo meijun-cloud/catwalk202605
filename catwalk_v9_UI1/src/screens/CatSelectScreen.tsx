@@ -193,7 +193,7 @@ const CatSelectScreen: React.FC = () => {
           </div>
         </section>
 
-        <p className="text-[10px] text-center text-gray-400">ℹ️ 兩項皆為必填，完成後才能進入下一步</p>
+        <p className="text-[11px] text-center text-gray-600 font-bold">ℹ️ 兩項皆為必填，完成後才能進入下一步</p>
         </div>
       </main>
 

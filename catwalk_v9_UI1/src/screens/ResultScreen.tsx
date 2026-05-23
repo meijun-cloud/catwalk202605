@@ -94,8 +94,8 @@ const ResultScreen: React.FC = () => {
 
         <div className="px-5 space-y-6">
           <div className="text-center mb-6">
-            <h1 className="text-[32px] font-black text-gray-900 tracking-tighter leading-none drop-shadow-sm">
-              你捕捉到一隻<br />療癒的貓咪！🐾
+            <h1 className="text-[26px] font-black text-gray-900 tracking-tight leading-relaxed drop-shadow-sm">
+              你捕捉到一隻療癒的貓咪！🐾
             </h1>
           </div>
 
@@ -119,7 +119,7 @@ const ResultScreen: React.FC = () => {
                     <h2 className="text-2xl font-black text-white leading-tight drop-shadow-lg">{color?.label} × {pose?.label} 🐾</h2>
                     <div className="flex items-center gap-1.5 text-white/90 text-[10px] font-black uppercase tracking-[0.1em] bg-black/30 backdrop-blur-md px-3 py-1 rounded-full w-fit border border-white/20">
                       <MapPin size={10} className="text-blue-400" />
-                      台北市大同區 · 永樂市場週邊
+                      {lastReport.location ? `台北市區域 (${lastReport.location.latitude?.toFixed(4) ?? '?'},${lastReport.location.longitude?.toFixed(4) ?? '?'})` : '台北市中正區'}
                     </div>
                  </div>
                  <div className="bg-white/95 backdrop-blur-md p-4 rounded-[28px] shadow-2xl flex flex-col items-center border border-white shrink-0">
@@ -130,13 +130,16 @@ const ResultScreen: React.FC = () => {
             </div>
           </motion.section>
 
-        {/* XP Progress Card */}
-        <ProgressBar 
+        {/* XP Progress Card - 柔和白色漸層背景 */}
+        <div className="relative rounded-3xl overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-white/80 via-white/40 to-transparent pointer-events-none z-10 rounded-3xl" />
+          <ProgressBar 
           current={xpInCurrentLevel} 
           total={xpNeededForNextIncrement} 
           label={`等級 ${user.currentLevel} 進度`}
           subLabel={isMaxLevel ? "恭喜你已達成最高等級！" : `再獲得 ${xpRemainingToNext} XP 即可升級！`}
         />
+        </div>
 
         {/* New Dex Unlock Toast (if applicable) */}
         {lastReport.isNewDexUnlock && (
@@ -170,10 +173,13 @@ const ResultScreen: React.FC = () => {
 
             <div className="flex items-center gap-6">
               <div className="relative">
-                <div className="w-24 h-24 bg-gradient-to-b from-yellow-200 to-yellow-500 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
-                  <div className="w-20 h-20 rounded-full border-2 border-white/50 flex items-center justify-center">
-                    <span className="text-4xl">🐾</span>
-                  </div>
+                <div className="w-24 h-24 rounded-full overflow-hidden shadow-lg border-4 border-white bg-gray-100">
+                  <img
+                    src={`https://catwalk-v2.vercel.app/assets/profile-page/badges/rank_badge_lv${String(user.currentLevel).padStart(2, '0')}.png`}
+                    alt={`Lv${user.currentLevel}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://catwalk-v2.vercel.app/assets/profile-page/badges/rank_badge_lv01.png'; }}
+                  />
                 </div>
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">Rank</div>
               </div>

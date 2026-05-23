@@ -50,7 +50,7 @@ const DexScreen: React.FC = () => {
   const percentage = Math.round((unlockedCount / (totalEntries || 1)) * 100);
 
   // Filter entries based on selected color and rarity
-  const filteredEntries = (CAT_COLORS || [])
+  const filteredEntriesRaw = (CAT_COLORS || [])
     .filter(c => c && (!selectedColorKey || c.key === selectedColorKey) && (!selectedRarity || c.rarity === selectedRarity))
     .flatMap(color => 
       (CAT_POSES || []).map(pose => ({
@@ -63,6 +63,12 @@ const DexScreen: React.FC = () => {
       }))
     );
 
+  // 已解鎖置頂排序
+  const filteredEntries = filteredEntriesRaw.slice().sort((a, b) => {
+    if (a.isUnlocked && !b.isUnlocked) return -1;
+    if (!a.isUnlocked && b.isUnlocked) return 1;
+    return 0;
+  });
   const displayedUnlockedCount = filteredEntries.filter(e => e.isUnlocked).length;
   const displayedTotalCount = filteredEntries.length;
 
@@ -93,7 +99,7 @@ const DexScreen: React.FC = () => {
               <ChevronLeft size={24} />
             </button>
           </div>
-          <p className="text-sm font-bold text-blue-800/60 drop-shadow-sm">記錄你在城市遇見的貓咪們</p>
+          <p className="text-sm font-bold text-blue-900/80 drop-shadow-sm">記錄你在城市遇見的貓咪們</p>
         </div>
 
         {/* Floating Stats Cards */}

@@ -209,12 +209,7 @@ const ProfileScreen: React.FC = () => {
                       <Edit2 size={16} strokeWidth={3} />
                     </button>
                   </div>
-                  <div className="flex items-center gap-1 text-gray-500 mt-0.5">
-                    <div className="w-5 h-5 bg-blue-50 rounded-full flex items-center justify-center">
-                      <MapPin size={10} className="text-blue-500" strokeWidth={3} />
-                    </div>
-                    <span className="text-[11px] font-bold tracking-tight text-gray-400">台北車站附近</span>
-                  </div>
+
                 </div>
              </div>
           </div>
