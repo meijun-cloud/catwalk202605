@@ -1,17 +1,23 @@
 import { NextResponse } from 'next/server';
 
-const NOTION_TOKEN = process.env.NOTION_TOKEN;
-const NOTION_CatData_ID = process.env.NOTION_CatData_ID;
-
 export async function GET() {
-  if (!NOTION_TOKEN || !NOTION_CatData_ID) {
-    console.error('Missing NOTION_TOKEN or NOTION_CatData_ID');
-    return NextResponse.json({ error: 'Notion not configured' }, { status: 500 });
+  const NOTION_TOKEN = process.env.NOTION_TOKEN;
+  const DB_ID = process.env.NOTION_CatData_ID;
+
+  if (!NOTION_TOKEN || !DB_ID) {
+    console.error('[catdata] Missing env vars:', {
+      hasToken: !!NOTION_TOKEN,
+      hasDbId: !!DB_ID,
+    });
+    return NextResponse.json(
+      { error: 'Notion not configured', hasToken: !!NOTION_TOKEN, hasDbId: !!DB_ID },
+      { status: 500 }
+    );
   }
 
   try {
     const res = await fetch(
-      `https://api.notion.com/v1/databases/${NOTION_CatData_ID}/query`,
+      `https://api.notion.com/v1/databases/${DB_ID}/query`,
       {
         method: 'POST',
         headers: {
@@ -26,32 +32,35 @@ export async function GET() {
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error('Notion error:', errText);
-      return NextResponse.json({ error: 'Notion fetch failed' }, { status: 500 });
+      console.error('[catdata] Notion error:', errText);
+      return NextResponse.json({ error: 'Notion fetch failed', detail: errText }, { status: 500 });
     }
 
     const data = await res.json();
 
-    // 讀取6個欄位: 名稱, district, latitude, longitude, color_key, environment
     const spots = data.results
       .map((page: any) => {
         const props = page.properties;
         return {
           id: page.id,
+          // 名稱欄位（title 類型）
           name: props['名稱']?.title?.[0]?.plain_text ?? '',
+          // district 欄位（select 類型）
           district: props['district']?.select?.name ?? '',
+          // latitude / longitude（number 類型）
           latitude: props['latitude']?.number ?? null,
           longitude: props['longitude']?.number ?? null,
+          // color_key（select 類型）
           color_key: props['color_key']?.select?.name ?? '',
+          // environment（select 類型）
           environment: props['environment']?.select?.name ?? '',
         };
       })
-      // 過濾掉沒有座標的資料
       .filter((s: any) => s.latitude !== null && s.longitude !== null);
 
     return NextResponse.json({ spots });
   } catch (err: any) {
-    console.error('CatData fetch error:', err?.message || err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[catdata] Error:', err?.message || err);
+    return NextResponse.json({ error: err?.message || 'Internal server error' }, { status: 500 });
   }
 }
