@@ -104,13 +104,14 @@ const MapScreen: React.FC = () => {
             { timeout: 8000, enableHighAccuracy: false }
           );
         }
-        // 其他人的藍點
-        fetch('/api/reports?map=true').then(r => r.json()).then(data => {
-          (data.points || []).forEach((p: any) => {
-            if (!p.lat || !p.lng) return;
+        // 藍點：貓咪可能出沒地（從 CatData database 讀取）
+        fetch('/api/catdata').then(r => r.json()).then(data => {
+          (data.spots || []).forEach((spot: any) => {
+            if (!spot.latitude || !spot.longitude) return;
             const el = document.createElement('div');
-            el.innerHTML = '<div style="width:26px;height:26px;background:#3b82f6;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 8px rgba(59,130,246,0.4)">🐱</div>';
-            new maplibregl.Marker({ element: el }).setLngLat([p.lng, p.lat]).addTo(map);
+            el.innerHTML = '<div style="width:28px;height:28px;background:#3b82f6;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 8px rgba(59,130,246,0.5);cursor:pointer">🐱</div>';
+            el.onclick = () => { setSelectedSpot(spot); setSelectedReport(null); };
+            new maplibregl.Marker({ element: el }).setLngLat([spot.longitude, spot.latitude]).addTo(map);
           });
         }).catch(() => {});
       });
@@ -300,6 +301,47 @@ const MapScreen: React.FC = () => {
           <button onClick={() => { setHighlightedDexEntry({ colorKey: selectedReport.colorKey, poseKey: selectedReport.poseKey }); setSelectedReport(null); navigateTo('Dex'); }}
             className="mt-3 w-full h-10 bg-blue-500 text-white rounded-2xl text-[10px] font-black flex items-center justify-center gap-2">
             <BookOpen size={14} /> 查看圖鑑詳情
+          </button>
+        </div>
+      )}
+
+      {/* ===== 藍點 popup（貓咪可能出沒地） ===== */}
+      {selectedSpot && (
+        <div className="absolute bottom-40 left-4 right-4 z-50 bg-white/95 backdrop-blur-xl p-5 rounded-[28px] shadow-2xl border border-white/50">
+          <button onClick={() => setSelectedSpot(null)} className="absolute top-4 right-4 w-8 h-8 bg-black/10 rounded-full flex items-center justify-center">
+            <X size={16} />
+          </button>
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-2xl shrink-0">🐱</div>
+            <div>
+              <h4 className="text-base font-black text-gray-800 leading-tight">貓咪可能出沒地</h4>
+              <p className="text-[11px] text-gray-400 font-medium mt-0.5">{selectedSpot.district || '台北市'} · {selectedSpot.name || '熱點'}</p>
+            </div>
+          </div>
+          {/* 花色標籤 */}
+          {selectedSpot.color_key && (
+            <p className="text-[12px] text-gray-600 font-medium mb-3 leading-relaxed">
+              附近曾有貓咪出沒紀錄，常見花色：
+              <span className="inline-block mt-1 px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[11px] font-bold ml-1">{selectedSpot.color_key}</span>
+            </p>
+          )}
+          {/* 環境 */}
+          {selectedSpot.environment && (
+            <div className="flex items-center gap-2 bg-gray-50 rounded-2xl px-4 py-2.5">
+              <span className="text-sm">🏘️</span>
+              <div>
+                <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">常見環境</p>
+                <p className="text-sm font-black text-gray-700">{selectedSpot.environment}</p>
+              </div>
+            </div>
+          )}
+          {/* 去找貓按鈕 */}
+          <button
+            onClick={() => { setSelectedSpot(null); navigateTo('MockCamera'); }}
+            className="mt-3 w-full h-11 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl text-[13px] font-black flex items-center justify-center gap-2 shadow-lg"
+          >
+            <Camera size={16} /> 開始找貓
           </button>
         </div>
       )}
