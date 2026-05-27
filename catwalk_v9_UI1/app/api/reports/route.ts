@@ -1,38 +1,94 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-  createReport,
-  createDexUnlock,
-  updateUserXp,
-  getReportsByNickname,
-} from '@/services/notionService';
-import { getLevelFromXp } from '@/services/xpService';
 
-// ── XP 計算規則 ──────────────────────────────────────
-const BASE_XP = 30;
-const RARITY_BONUS: Record<string, number> = { common: 0, uncommon: 20, rare: 50 };
-const COLOR_RARITY: Record<string, string> = {
-  black_white: 'common', orange: 'common', white: 'common', gray: 'uncommon',
-  black: 'common', calico: 'common', tortoiseshell: 'uncommon', tabby: 'common',
-  siamese: 'rare', white_tabby: 'uncommon', orange_white: 'uncommon', brown_white: 'rare',
+const NOTION_API_KEY = process.env.NOTION_API_KEY!;
+const REPORTS_DB = process.env.NOTION_REPORTS_ID!;
+const DEX_DB = process.env.NOTION_DEX_DB_ID!;
+const USERS_DB = process.env.NOTION_USERS_DB_ID!;
+
+const notionHeaders = {
+  Authorization: `Bearer ${NOTION_API_KEY}`,
+  'Content-Type': 'application/json',
+  'Notion-Version': '2022-06-28',
 };
-// 姿勢中文對應
+
+// ── XP 計算（與 xpService.ts 一致） ────────────────────
+const CAT_COLORS: Record<string, { rarity: string; xpBonus: number }> = {
+  black_white: { rarity: 'common', xpBonus: 0 },
+  orange:      { rarity: 'common', xpBonus: 0 },
+  white:       { rarity: 'common', xpBonus: 0 },
+  gray:        { rarity: 'uncommon', xpBonus: 20 },
+  black:       { rarity: 'common', xpBonus: 0 },
+  calico:      { rarity: 'common', xpBonus: 0 },
+  tortoiseshell: { rarity: 'uncommon', xpBonus: 20 },
+  tabby:       { rarity: 'common', xpBonus: 0 },
+  siamese:     { rarity: 'rare', xpBonus: 50 },
+  white_tabby: { rarity: 'uncommon', xpBonus: 20 },
+  orange_white: { rarity: 'uncommon', xpBonus: 20 },
+  brown_white: { rarity: 'rare', xpBonus: 50 },
+};
+
+const LEVELS = [
+  { level: 1, title: '巷口新貓友', requiredTotalXp: 0 },
+  { level: 2, title: '騎樓觀察員', requiredTotalXp: 30 },
+  { level: 3, title: '街頭巡禮人', requiredTotalXp: 90 },
+  { level: 4, title: '市場識途者', requiredTotalXp: 180 },
+  { level: 5, title: '巷貓鄰里長', requiredTotalXp: 300 },
+  { level: 6, title: '巷弄追風者', requiredTotalXp: 450 },
+  { level: 7, title: '矮牆望遠師', requiredTotalXp: 600 },
+  { level: 8, title: '夜路尋蹤師', requiredTotalXp: 780 },
+  { level: 9, title: '城市貓師',   requiredTotalXp: 975 },
+  { level: 10, title: '貓部宗師',  requiredTotalXp: 1170 },
+];
+
+// 姿勢對應
 const POSE_LABELS: Record<string, string> = {
   basking: '曬太陽', curled_sleep: '蜷縮睡覺', walking: '走動中',
   grooming: '理毛', alert_standing: '警覺站立', sitting: '坐著發呆', eating: '吃飯',
 };
-// 環境中文對應
+
+// 環境對應
 const ENV_LABELS: Record<string, string> = {
   alley: '巷弄', parking: '停車場', park: '公園', mountain: '山區',
   temple: '廟', arcade: '騎樓下', market: '傳統市場', wall: '矮牆／圍牆上',
   shop: '店面', station: '車站',
 };
-// 數量中文對應
+
+// 數量對應
 const COUNT_LABELS: Record<string, string> = {
   one: '1 隻', two_three: '2–3 隻', four_plus: '4 隻以上',
 };
 
-// ── POST：送出回報 ────────────────────────────────────
+function getLevelFromXp(totalXp: number) {
+  return [...LEVELS].reverse().find(l => totalXp >= l.requiredTotalXp) ?? LEVELS[0];
+}
+
+// ── Reverse Geocoding（Nominatim，免費無需金鑰） ─────────
+async function getLocationName(lat: number, lng: number): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=zh-TW`,
+      { headers: { 'User-Agent': 'catwalk202605-app/1.0' }, signal: AbortSignal.timeout(3000) }
+    );
+    if (!res.ok) return '台灣';
+    const data = await res.json();
+    const addr = data.address ?? {};
+    // 優先取 city_district > suburb > city > county
+    const district = addr.city_district ?? addr.suburb ?? addr.quarter ?? '';
+    const city = addr.city ?? addr.county ?? addr.state ?? '';
+    if (city && district) return `${city}${district}`;
+    if (city) return city;
+    return '台灣';
+  } catch {
+    return '台灣';
+  }
+}
+
+// ── POST：送出回報 ────────────────────────────────────────
 export async function POST(req: NextRequest) {
+  if (!NOTION_API_KEY || !REPORTS_DB) {
+    return NextResponse.json({ error: 'Notion not configured' }, { status: 500 });
+  }
+
   try {
     const body = await req.json();
     const {
@@ -42,17 +98,22 @@ export async function POST(req: NextRequest) {
 
     if (!nickname) return NextResponse.json({ error: 'nickname required' }, { status: 400 });
 
-    // 計算 XP 與稀有度
-    const rarity = COLOR_RARITY[colorKey] ?? 'common';
-    const xpEarned = BASE_XP + (RARITY_BONUS[rarity] ?? 0);
-    const newTotalXp = (currentTotalXp ?? 0) + xpEarned;
+    const lat = latitude ?? 25.0478;
+    const lng = longitude ?? 121.5170;
 
-    // 等級計算
-    const { level: newLevel, title: newTitle } = getLevelFromXp(newTotalXp);
-
-    // 圖鑑是否為新解鎖
+    // XP 計算
+    const colorInfo = CAT_COLORS[colorKey] ?? { rarity: 'common', xpBonus: 0 };
     const isNewDexUnlock = !Array.isArray(existingDexUnlocks) ||
       !existingDexUnlocks.some((d: any) => d.colorKey === colorKey && d.poseKey === poseKey);
+    const base = 10;
+    const newDexBonus = isNewDexUnlock ? 30 : 0;
+    const rarityBonus = colorInfo.xpBonus;
+    const xpEarned = base + newDexBonus + rarityBonus;
+    const newTotalXp = (currentTotalXp ?? 0) + xpEarned;
+    const levelInfo = getLevelFromXp(newTotalXp);
+
+    // 地點名稱
+    const locationName = await getLocationName(lat, lng);
 
     // 產生 reportId
     const now = new Date();
@@ -61,44 +122,70 @@ export async function POST(req: NextRequest) {
     const reportId = `R-${dateStr}-${rand}`;
 
     // 寫入 Notion Reports
-    await createReport({
-      reportId,
-      userNickname: nickname,
-      photoUrl: photoUrl ?? '',
-      latitude: latitude ?? 25.0478,
-      longitude: longitude ?? 121.5170,
-      colorKey,
-      pose: POSE_LABELS[poseKey] ?? poseKey,
-      environment: ENV_LABELS[environmentKey] ?? environmentKey,
-      catCount: COUNT_LABELS[catCount] ?? catCount,
-      xpEarned,
+    const reportProperties: Record<string, any> = {
+      report_id:    { title: [{ text: { content: reportId } }] },
+      user_nickname: { rich_text: [{ text: { content: nickname } }] },
+      latitude:     { number: lat },
+      longitude:    { number: lng },
+      color_key:    { rich_text: [{ text: { content: colorKey ?? '' } }] },
+      pose:         { select: { name: POSE_LABELS[poseKey] ?? poseKey ?? '' } },
+      environment:  { select: { name: ENV_LABELS[environmentKey] ?? environmentKey ?? '' } },
+      cat_count:    { select: { name: COUNT_LABELS[catCount] ?? catCount ?? '' } },
+      xp_earned:    { number: xpEarned },
+    };
+    if (photoUrl && photoUrl.startsWith('http')) {
+      reportProperties.photo = { url: photoUrl };
+    }
+
+    const reportRes = await fetch('https://api.notion.com/v1/pages', {
+      method: 'POST',
+      headers: notionHeaders,
+      body: JSON.stringify({ parent: { database_id: REPORTS_DB }, properties: reportProperties }),
     });
+    if (!reportRes.ok) {
+      const err = await reportRes.text();
+      console.error('[reports] Notion Reports write error:', err);
+      return NextResponse.json({ error: 'Failed to save report', detail: err }, { status: 500 });
+    }
 
     // 新圖鑑解鎖 → 寫入 DexUnlocks
-    if (isNewDexUnlock) {
-      await createDexUnlock({
-        unlockId: `${nickname}-${colorKey}-${poseKey}`,
-        userNickname: nickname,
-        colorKey,
-        pose: POSE_LABELS[poseKey] ?? poseKey,
-        unlockedAt: now.toISOString(),
-      });
+    if (isNewDexUnlock && DEX_DB) {
+      const unlockId = `${nickname}-${colorKey}-${poseKey}`;
+      await fetch('https://api.notion.com/v1/pages', {
+        method: 'POST',
+        headers: notionHeaders,
+        body: JSON.stringify({
+          parent: { database_id: DEX_DB },
+          properties: {
+            unlock_id:    { title: [{ text: { content: unlockId } }] },
+            user_nickname: { rich_text: [{ text: { content: nickname } }] },
+            color_key:    { rich_text: [{ text: { content: colorKey } }] },
+            pose:         { select: { name: POSE_LABELS[poseKey] ?? poseKey } },
+            unlocked_at:  { date: { start: now.toISOString() } },
+          },
+        }),
+      }).catch(e => console.warn('[reports] DexUnlock write warn:', e));
     }
 
     // 更新 Users XP
-    if (userPageId) {
-      await updateUserXp(userPageId, newTotalXp);
+    if (userPageId && USERS_DB) {
+      await fetch(`https://api.notion.com/v1/pages/${userPageId}`, {
+        method: 'PATCH',
+        headers: notionHeaders,
+        body: JSON.stringify({ properties: { total_xp: { number: newTotalXp } } }),
+      }).catch(e => console.warn('[reports] User XP update warn:', e));
     }
 
     return NextResponse.json({
       success: true,
       reportId,
       xpEarned,
-      rarity,
+      rarity: colorInfo.rarity,
       isNewDexUnlock,
       newTotalXp,
-      newLevel,
-      newTitle,
+      newLevel: levelInfo.level,
+      newTitle: levelInfo.title,
+      locationName,
     });
   } catch (err: any) {
     console.error('[reports POST] Error:', err?.message || err);
@@ -106,33 +193,40 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ── GET：讀取回報列表 ──────────────────────────────────
+// ── GET：讀取回報列表 ─────────────────────────────────────
 export async function GET(req: NextRequest) {
+  if (!NOTION_API_KEY || !REPORTS_DB) {
+    return NextResponse.json({ error: 'Notion not configured' }, { status: 500 });
+  }
   const { searchParams } = new URL(req.url);
   const nickname = searchParams.get('nickname');
-
-  // 地圖藍點（現在改由 /api/catdata 負責，這裡不再處理）
-  if (!nickname) {
-    return NextResponse.json({ error: 'nickname required' }, { status: 400 });
-  }
+  if (!nickname) return NextResponse.json({ error: 'nickname required' }, { status: 400 });
 
   try {
-    const pages = await getReportsByNickname(nickname);
-    const reports = pages.map((page: any) => {
-      const props = page.properties;
+    const res = await fetch(`https://api.notion.com/v1/databases/${REPORTS_DB}/query`, {
+      method: 'POST', headers: notionHeaders,
+      body: JSON.stringify({
+        page_size: 100,
+        filter: { property: 'user_nickname', rich_text: { equals: nickname } },
+        sorts: [{ timestamp: 'created_time', direction: 'descending' }],
+      }),
+      cache: 'no-store',
+    });
+    if (!res.ok) return NextResponse.json({ error: 'Notion fetch failed' }, { status: 500 });
+    const data = await res.json();
+    const reports = data.results.map((page: any) => {
+      const p = page.properties;
       return {
-        id: page.id,
-        reportId: props['report_id']?.title?.[0]?.plain_text ?? '',
-        userNickname: props['user_nickname']?.rich_text?.[0]?.plain_text ?? '',
-        photo: props['photo']?.url ?? null,
-        latitude: props['latitude']?.number ?? null,
-        longitude: props['longitude']?.number ?? null,
-        colorKey: props['color_key']?.rich_text?.[0]?.plain_text ?? '',
-        pose: props['pose']?.select?.name ?? '',
-        environment: props['environment']?.select?.name ?? '',
-        catCount: props['cat_count']?.select?.name ?? '',
-        xpEarned: props['xp_earned']?.number ?? 0,
-        submittedAt: page.created_time,
+        reportId:       p['report_id']?.title?.[0]?.plain_text ?? '',
+        photo:          p['photo']?.url ?? null,
+        colorKey:       p['color_key']?.rich_text?.[0]?.plain_text ?? '',
+        poseKey:        p['pose']?.select?.name ?? '',
+        environmentKey: p['environment']?.select?.name ?? '',
+        catCount:       p['cat_count']?.select?.name ?? '',
+        xpEarned:       p['xp_earned']?.number ?? 0,
+        latitude:       p['latitude']?.number ?? null,
+        longitude:      p['longitude']?.number ?? null,
+        submittedAt:    page.created_time,
       };
     });
     return NextResponse.json({ reports });
