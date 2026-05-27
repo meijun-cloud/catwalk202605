@@ -32,6 +32,7 @@ export type Report = {
   isLevelUp: boolean;
   captureCount?: number;
   location?: { latitude: number; longitude: number; mapX?: number; mapY?: number };
+  locationName?: string;
 };
 
 export type DexUnlock = {
