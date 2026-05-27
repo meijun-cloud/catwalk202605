@@ -41,8 +41,8 @@ export async function GET() {
           district: props['district']?.select?.name ?? '',
           latitude: props['latitude']?.number ?? null,
           longitude: props['longitude']?.number ?? null,
-          color_key: props['color_key']?.select?.name ?? '',
-          environment: props['environment']?.select?.name ?? '',
+          color_key: props['color_key']?.multi_select?.[0]?.name ?? props['color_key']?.select?.name ?? '',
+          environment: props['environment']?.multi_select?.[0]?.name ?? props['environment']?.select?.name ?? '',
         };
       })
       .filter((s: any) => s.latitude !== null && s.longitude !== null);
