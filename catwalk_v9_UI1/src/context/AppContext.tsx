@@ -118,7 +118,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         ]);
         const rData = await rRes.json();
         const dData = await dRes.json();
-        if (rData.reports) setReports(rData.reports);
+        if (rData.reports) {
+          const mapped = rData.reports.map((r: any) => ({
+            reportId: r.reportId,
+            photo: r.photo ?? '',
+            colorKey: r.colorKey ?? '',
+            poseKey: r.poseKey ?? '',
+            environmentKey: r.environmentKey ?? '',
+            catCount: r.catCount ?? '',
+            submittedAt: r.submittedAt ?? new Date().toISOString(),
+            xpEarned: r.xpEarned ?? 0,
+            rarity: r.rarity ?? 'common',
+            isNewDexUnlock: false,
+            isLevelUp: false,
+            captureCount: 1,
+            location: r.latitude && r.longitude ? {
+              latitude: r.latitude, longitude: r.longitude,
+              mapX: 20 + Math.random() * 60, mapY: 30 + Math.random() * 40,
+            } : undefined,
+          }));
+          setReports(mapped);
+        }
         if (dData.unlocks) setDexUnlocks(dData.unlocks);
       } catch { /* 保留 localStorage */ }
       setCurrentScreen('Map');
