@@ -1,6 +1,6 @@
 const NOTION_API_KEY = process.env.NOTION_API_KEY!;
 const USERS_DB = process.env.NOTION_USERS_DB_ID!;
-const REPORTS_DB = process.env.NOTION_REPORTS_DB_ID!;
+const REPORTS_DB = process.env.NOTION_REPORTS_ID!;   // 你的實際變數名稱
 const DEX_DB = process.env.NOTION_DEX_DB_ID!;
 
 const headers = {
@@ -88,15 +88,6 @@ export async function getReportsByNickname(nickname: string) {
   return data.results ?? [];
 }
 
-export async function getAllReportsForMap() {
-  const res = await fetch(`https://api.notion.com/v1/databases/${REPORTS_DB}/query`, {
-    method: 'POST', headers,
-    body: JSON.stringify({ page_size: 100 }),
-  });
-  const data = await res.json();
-  return data.results ?? [];
-}
-
 export async function getDexByNickname(nickname: string) {
   const res = await fetch(`https://api.notion.com/v1/databases/${DEX_DB}/query`, {
     method: 'POST', headers,
@@ -109,7 +100,7 @@ export async function getDexByNickname(nickname: string) {
 export async function createDexUnlock(data: {
   unlockId: string; userNickname: string; colorKey: string; pose: string; unlockedAt: string;
 }) {
-  await fetch('https://api.notion.com/v1/pages', {
+  const res = await fetch('https://api.notion.com/v1/pages', {
     method: 'POST', headers,
     body: JSON.stringify({
       parent: { database_id: DEX_DB },
@@ -122,4 +113,8 @@ export async function createDexUnlock(data: {
       },
     }),
   });
+  if (!res.ok) {
+    const err = await res.json();
+    console.error('Notion createDexUnlock error:', JSON.stringify(err));
+  }
 }
