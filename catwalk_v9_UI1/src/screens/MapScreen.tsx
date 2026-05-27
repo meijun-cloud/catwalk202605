@@ -104,13 +104,14 @@ const MapScreen: React.FC = () => {
             { timeout: 8000, enableHighAccuracy: false }
           );
         }
-        // 其他人的藍點
-        fetch('/api/reports?map=true').then(r => r.json()).then(data => {
-          (data.points || []).forEach((p: any) => {
-            if (!p.lat || !p.lng) return;
+        // 藍點：貓咪可能出沒地（CatData database）
+        fetch('/api/catdata').then(r => r.json()).then(data => {
+          (data.spots || []).forEach((spot: any) => {
+            if (!spot.latitude || !spot.longitude) return;
             const el = document.createElement('div');
-            el.innerHTML = '<div style="width:26px;height:26px;background:#3b82f6;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 8px rgba(59,130,246,0.4)">🐱</div>';
-            new maplibregl.Marker({ element: el }).setLngLat([p.lng, p.lat]).addTo(map);
+            el.innerHTML = '<div style="position:relative;cursor:pointer"><div style="width:32px;height:32px;background:#3b82f6;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 3px 10px rgba(59,130,246,0.5)">🐱</div><div style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #3b82f6"></div></div>';
+            el.onclick = () => { setSelectedSpot(spot); setSelectedReport(null); };
+            new maplibregl.Marker({ element: el }).setLngLat([spot.longitude, spot.latitude]).addTo(map);
           });
         }).catch(() => {});
       });
@@ -135,7 +136,7 @@ const MapScreen: React.FC = () => {
         if (!report.location) return;
         const { latitude, longitude } = report.location;
         const el = document.createElement('div');
-        el.innerHTML = '<div style="position:relative;cursor:pointer"><div style="width:36px;height:36px;background:#facc15;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(250,204,21,0.6)"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div><div style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid #facc15"></div></div>';
+        el.innerHTML = '<div style="position:relative;cursor:pointer"><div style="width:36px;height:36px;background:#facc15;border:3px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(250,204,21,0.6)"><svg xmlns=\'http://www.w3.org/2000/svg\' width=\'18\' height=\'18\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'white\' stroke-width=\'2.5\'><path d=\'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z\'/><circle cx=\'12\' cy=\'13\' r=\'4\'/></svg></div><div style=\'position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid #facc15\'></div></div>';
         el.onclick = () => { setSelectedReport(report); setSelectedSpot(null); };
         const marker = new maplibregl.Marker({ element: el }).setLngLat([longitude, latitude]).addTo(mapRef.current);
         yellowMarkersRef.current.push(marker);
@@ -300,6 +301,37 @@ const MapScreen: React.FC = () => {
           <button onClick={() => { setHighlightedDexEntry({ colorKey: selectedReport.colorKey, poseKey: selectedReport.poseKey }); setSelectedReport(null); navigateTo('Dex'); }}
             className="mt-3 w-full h-10 bg-blue-500 text-white rounded-2xl text-[10px] font-black flex items-center justify-center gap-2">
             <BookOpen size={14} /> 查看圖鑑詳情
+          </button>
+        </div>
+      )}
+      {/* 藍點 popup */}
+      {selectedSpot && (
+        <div className="absolute bottom-40 left-4 right-4 z-50 bg-white/95 backdrop-blur-xl p-5 rounded-[28px] shadow-2xl border border-white/50">
+          <button onClick={() => setSelectedSpot(null)} className="absolute top-4 right-4 w-8 h-8 bg-black/10 rounded-full flex items-center justify-center text-gray-500 text-lg">✕</button>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-2xl">🐱</div>
+            <div>
+              <h4 className="text-base font-black text-gray-800">貓咪可能出沒地</h4>
+              <p className="text-[11px] text-gray-400 mt-0.5">{selectedSpot.district || ''} · {selectedSpot.name || '熱點'}</p>
+            </div>
+          </div>
+          {selectedSpot.color_key && (
+            <p className="text-[12px] text-gray-600 mb-3">
+              附近常見花色：<span className="inline-block px-2.5 py-0.5 bg-blue-50 text-blue-600 rounded-full text-[11px] font-bold ml-1">{selectedSpot.color_key}</span>
+            </p>
+          )}
+          {selectedSpot.environment && (
+            <div className="flex items-center gap-2 bg-gray-50 rounded-2xl px-4 py-2.5 mb-3">
+              <span>🏘️</span>
+              <div>
+                <p className="text-[9px] font-bold text-gray-400 uppercase">常見環境</p>
+                <p className="text-sm font-black text-gray-700">{selectedSpot.environment}</p>
+              </div>
+            </div>
+          )}
+          <button onClick={() => { setSelectedSpot(null); navigateTo('MockCamera'); }}
+            className="w-full h-11 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl text-[13px] font-black flex items-center justify-center gap-2">
+            📷 開始找貓
           </button>
         </div>
       )}

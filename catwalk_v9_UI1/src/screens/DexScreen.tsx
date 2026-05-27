@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { ChevronLeft, Info, Filter, ArrowUpDown, Lock, BookOpen, Sparkles, X, Calendar, MapPin, Camera } from 'lucide-react';
 import { CAT_COLORS, CAT_POSES, LEVELS } from '../constants';
@@ -232,12 +232,12 @@ const DexScreen: React.FC = () => {
               { key: 'orange_white', label: '橘白貓', img: 'orange-white/orange_white_sit-idle' },
               { key: 'brown_white', label: '棕白貓', img: 'brown-white/brown_white_sit-idle' },
             ].map((cat) => (
-              <button 
+              <button
                 key={cat.key}
                 onClick={() => setSelectedColorKey(cat.key)}
                 className={`flex-shrink-0 pl-1.5 pr-4 py-1.5 rounded-full text-[13px] font-black transition-all flex items-center gap-2 ${selectedColorKey === cat.key ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'}`}
               >
-                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0" style={{background:'#f1f5f9'}}>
+                <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm shrink-0 bg-slate-100">
                   <img
                     src={`https://catwalk-v2.vercel.app/assets/collection-page/${cat.img}.jpg`}
                     alt={cat.label}
@@ -495,27 +495,7 @@ const DexScreen: React.FC = () => {
                                   <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">回報地點</span>
                                   <span className="text-xs font-black text-gray-700 flex items-center gap-1">
                                     <MapPin size={12} className="text-gray-400" />
-                                    {report.location?.latitude && report.location?.longitude
-                                      ? (() => {
-                                          const lat = report.location.latitude;
-                                          const lng = report.location.longitude;
-                                          // 簡易地區對應（根據經緯度範圍判斷台北各區）
-                                          if (lat > 25.13) return '台北市士林區';
-                                          if (lat > 25.10 && lng < 121.51) return '台北市北投區';
-                                          if (lat > 25.10) return '台北市內湖區';
-                                          if (lat > 25.08 && lng > 121.57) return '台北市南港區';
-                                          if (lat > 25.08 && lng > 121.54) return '台北市松山區';
-                                          if (lat > 25.08) return '台北市中山區';
-                                          if (lat > 25.05 && lng > 121.56) return '台北市信義區';
-                                          if (lat > 25.05 && lng > 121.52) return '台北市大安區';
-                                          if (lat > 25.05) return '台北市大同區';
-                                          if (lat > 25.03 && lng > 121.54) return '台北市大安區';
-                                          if (lat > 25.03 && lng > 121.51) return '台北市中正區';
-                                          if (lat > 25.03) return '台北市萬華區';
-                                          if (lng > 121.55) return '台北市文山區';
-                                          return '台北市文山區';
-                                        })()
-                                      : '台北市'}
+                                    {(report as any).locationName || '台灣'}
                                   </span>
                                 </div>
                                 <div className="flex flex-col gap-1">
