@@ -5,6 +5,7 @@ export async function GET() {
   const NOTION_CatData_ID = process.env.NOTION_CatData_ID;
 
   if (!NOTION_API_KEY || !NOTION_CatData_ID) {
+    console.error('[catdata] Missing env vars');
     return NextResponse.json({ error: 'Notion not configured' }, { status: 500 });
   }
 
