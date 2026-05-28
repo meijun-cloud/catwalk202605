@@ -46,7 +46,7 @@ const rankImageMap: Record<number, string> = {
 };
 
 const ProfileScreen: React.FC = () => {
-  const { user, reports, dexUnlocks, navigateTo, resetAllData, updateUserProfile } = useApp();
+  const { user, reports, dexUnlocks, navigateTo, resetAllData, updateUserProfile, logout } = useApp();
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
@@ -371,8 +371,8 @@ const ProfileScreen: React.FC = () => {
              </div>
           </section>
 
-          {/* Reset Data Link (Keep it subtle) */}
-          <section className="pb-24 pt-4 flex justify-center">
+          {/* Reset Data + Logout */}
+          <section className="pb-24 pt-4 flex flex-col items-center gap-1">
              <button 
                onClick={() => {
                  if(window.confirm('確定要重置所有資料嗎？這將會清除你的等級、紀錄與圖鑑進度。')) {
@@ -382,6 +382,17 @@ const ProfileScreen: React.FC = () => {
                className="text-[10px] font-black text-gray-300 hover:text-gray-400 tracking-widest uppercase py-4 px-6 rounded-full transition-colors"
              >
                重置系統資料
+             </button>
+             <button
+               onClick={() => {
+                 if(window.confirm('確定要登出嗎？下次以相同 Email 登入可恢復所有紀錄。')) {
+                   logout();
+                 }
+               }}
+               className="text-[10px] font-black tracking-widest uppercase py-4 px-6 rounded-full transition-colors"
+               style={{ color: '#f9a8d4' }}
+             >
+               登出
              </button>
           </section>
         </main>
