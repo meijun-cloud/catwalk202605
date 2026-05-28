@@ -129,7 +129,6 @@ export async function POST(req: NextRequest) {
     // temperature  = number → 不寫（optional）
 
     const poseName  = POSE_LABELS[poseKey]        ?? poseKey        ?? '';
-    const envName   = ENV_LABELS[environmentKey]  ?? environmentKey ?? '';
     const countName = COUNT_LABELS[catCount]      ?? catCount       ?? '';
 
     const reportProps: Record<string, any> = {
@@ -150,7 +149,7 @@ export async function POST(req: NextRequest) {
     // Notion API 會自動建立新 select 選項，不需預先設定
     if (poseName)  reportProps.pose      = { select: { name: poseName  } };
     if (countName) reportProps.cat_count = { select: { name: countName } };
-    if (envName)   reportProps.environment = { select: { name: envName } };
+    // environment 欄位在此 DB 不存在，不寫入
 
     const reportRes = await fetch('https://api.notion.com/v1/pages', {
       method: 'POST', headers: H,
@@ -232,7 +231,7 @@ export async function GET(req: NextRequest) {
         photo:          p['photo']?.url ?? null,
         colorKey:       p['color_key']?.rich_text?.[0]?.plain_text ?? '',
         poseKey:        p['pose']?.select?.name ?? '',
-        environmentKey: p['environment']?.select?.name ?? '',
+        environmentKey: '',
         catCount:       p['cat_count']?.select?.name ?? '',
         xpEarned:       p['xp_earned']?.number ?? 0,
         latitude:       p['latitude']?.number ?? null,
