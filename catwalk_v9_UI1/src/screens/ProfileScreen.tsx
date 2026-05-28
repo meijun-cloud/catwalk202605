@@ -390,7 +390,7 @@ const ProfileScreen: React.FC = () => {
                  }
                }}
                className="text-[10px] font-black tracking-widest uppercase py-4 px-6 rounded-full transition-colors"
-               style={{ color: '#f9a8d4' }}
+               style={{ color: '#ff8a8a' }}
              >
                登出
              </button>
