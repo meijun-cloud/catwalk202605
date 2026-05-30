@@ -112,19 +112,40 @@ export const collectionCoverMap: Record<string, Record<string, string>> = {
 
 const lockedCover = "https://catwalk-v2.vercel.app/assets/collection-page/locked/lock.png";
 
+// 中文姿勢名稱 → 英文 pose key（Notion GET 讀回時是中文）
+const POSE_ZH_TO_KEY: Record<string, string> = {
+  '曬太陽': 'sunbathing',
+  '蜷縮睡覺': 'sleep',
+  '走動中': 'walking',
+  '理毛': 'grooming',
+  '警覺站立': 'standAlert',
+  '坐著發呆': 'sitIdle',
+  '吃飯': 'eating',
+};
+
 export const getCollectionCardCover = (colorKey: string | null | undefined, poseKey: string | null | undefined, isUnlocked: boolean = true) => {
   if (!isUnlocked || !colorKey || !poseKey) {
     return lockedCover;
   }
 
   try {
-    // Pose key normalization
+    // Pose key normalization（英文 key + 中文 key 都支援）
     let pose = poseKey;
-    if (['sleep-curled', 'curled_sleep', 'sleepCurled'].includes(poseKey)) pose = 'sleep';
-    else if (['walk', 'walking'].includes(poseKey)) pose = 'walking';
-    else if (['stand-alert', 'alert_standing', 'standAlert'].includes(poseKey)) pose = 'standAlert';
-    else if (['sit-idle', 'sitIdle', 'sitting', 'idle'].includes(poseKey)) pose = 'sitIdle';
-    else if (['sunbathing', 'basking'].includes(poseKey)) pose = 'sunbathing';
+    // 先嘗試中文對應
+    if (POSE_ZH_TO_KEY[poseKey]) {
+      pose = POSE_ZH_TO_KEY[poseKey];
+    } else if (['sleep-curled', 'curled_sleep', 'sleepCurled'].includes(poseKey)) {
+      pose = 'sleep';
+    } else if (['walk', 'walking'].includes(poseKey)) {
+      pose = 'walking';
+    } else if (['stand-alert', 'alert_standing', 'standAlert'].includes(poseKey)) {
+      pose = 'standAlert';
+    } else if (['sit-idle', 'sitIdle', 'sitting', 'idle'].includes(poseKey)) {
+      pose = 'sitIdle';
+    } else if (['sunbathing', 'basking'].includes(poseKey)) {
+      pose = 'sunbathing';
+    }
+    // eating 直接通過，不需額外處理
 
     // Color key normalization
     let color = colorKey;
