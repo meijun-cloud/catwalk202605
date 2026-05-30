@@ -45,13 +45,10 @@ const MapScreen: React.FC = () => {
   const [locationName, setLocationName] = useState('台北車站附近');
   const [isLocationMenuOpen, setIsLocationMenuOpen] = useState(false);
 
-  // 從 reports 取得曾拍照的地區（最多 5 筆，不重複）
-  const reportLocations = Array.from(new Set(
-    reports
-      .filter(r => r.location?.latitude && r.location?.longitude)
-      .slice(0, 10)
-      .map(r => `${r.location!.latitude.toFixed(4)},${r.location!.longitude.toFixed(4)}`)
-  )).slice(0, 5);
+  // 從 reports 取最新 5 筆有座標的回報（直接取，不去重）
+  const recentReports = reports
+    .filter(r => r.location?.latitude && r.location?.longitude)
+    .slice(0, 5);
 
   // 重新定位
   const relocate = useCallback(() => {
@@ -192,17 +189,11 @@ const MapScreen: React.FC = () => {
                   >
                     <MapPin size={14} /> 重新定位目前位置
                   </button>
-                  {reportLocations.length > 0 ? reportLocations.map((locKey, idx) => {
-                    const r = reports.find(rep =>
-                      rep.location &&
-                      `${rep.location.latitude.toFixed(4)},${rep.location.longitude.toFixed(4)}` === locKey
-                    );
-                    const displayName = r?.submittedAt
-                      ? `我的回報 ${idx + 1}`
-                      : `地點 ${idx + 1}`;
+                  {recentReports.length > 0 ? recentReports.map((r, idx) => {
+                    const locKey = `${r.location!.latitude.toFixed(4)},${r.location!.longitude.toFixed(4)}`;
                     return (
-                      <button key={locKey} onClick={() => {
-                        if (r?.location && mapRef.current) {
+                      <button key={r.reportId || locKey} onClick={() => {
+                        if (r.location && mapRef.current) {
                           mapRef.current.flyTo({ center: [r.location.longitude, r.location.latitude], zoom: 16 });
                           setLocationName(r.submittedAt ? new Date(r.submittedAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }) + ' 的回報' : '我的回報');
                         }
@@ -211,8 +202,8 @@ const MapScreen: React.FC = () => {
                         className="w-full px-4 py-3 text-left text-sm font-bold transition-colors hover:bg-gray-50 text-gray-700 flex items-center gap-2">
                         <span className="text-yellow-500">📷</span>
                         <div className="flex flex-col items-start">
-                          <span className="text-xs font-black">{r?.submittedAt ? new Date(r.submittedAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }) + ` · ${r.colorKey ? (CAT_COLORS.find(c => c.key === r.colorKey)?.label ?? '') : ''}` : `回報 ${idx + 1}`}</span>
-                          <span className="text-[10px] text-gray-400">{r?.location ? `${r.location.latitude.toFixed(3)}, ${r.location.longitude.toFixed(3)}` : ''}</span>
+                          <span className="text-xs font-black">{r.submittedAt ? new Date(r.submittedAt).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }) + ` · ${r.colorKey ? (CAT_COLORS.find(c => c.key === r.colorKey)?.label ?? '') : ''}` : `回報 ${idx + 1}`}</span>
+                          <span className="text-[10px] text-gray-400">{`${r.location!.latitude.toFixed(3)}, ${r.location!.longitude.toFixed(3)}`}</span>
                         </div>
                       </button>
                     );
