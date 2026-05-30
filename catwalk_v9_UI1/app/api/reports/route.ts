@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
 
     // environment：存在於此 DB，中文值；若 other 則寫入「其他」
     const envName = environmentKey === 'other' ? '其他' : (ENV_LABELS[environmentKey] ?? environmentKey ?? '');
-    if (envName) reportProps.environment = { select: { name: envName } };
+    if (envName) reportProps.environment = { multi_select: [{ name: envName }] };
 
     // pose_note：使用者自填（poseKey === 'other' 時才有值）
     if (poseKey === 'other' && poseNote) {
@@ -250,7 +250,7 @@ export async function GET(req: NextRequest) {
         colorKey:       p['color_key']?.rich_text?.[0]?.plain_text ?? '',
         poseKey:        p['pose']?.select?.name ?? '',
         poseNote:       p['pose_note']?.rich_text?.[0]?.plain_text ?? undefined,
-        environmentKey: p['environment']?.select?.name ?? '',
+        environmentKey: p['environment']?.multi_select?.[0]?.name ?? '',
         environmentNote:p['environment_note']?.rich_text?.[0]?.plain_text ?? undefined,
         catCount:       p['cat_count']?.select?.name ?? '',
         locationName:   p['Location']?.rich_text?.[0]?.plain_text ?? '',
