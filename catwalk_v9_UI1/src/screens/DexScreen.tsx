@@ -150,7 +150,7 @@ const DexScreen: React.FC = () => {
                 <span className="text-xs font-black text-gray-700 tracking-tight">收藏進度</span>
               </div>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-black text-gray-800">{displayedUnlockedCount}</span>
+                <span className="text-3xl font-black text-gray-800">{unlockedCount}</span>
                 <span className="text-xs font-bold text-gray-400">/ {totalEntries}</span>
               </div>
               <div className="mt-1 flex items-center gap-2">
@@ -285,7 +285,11 @@ const DexScreen: React.FC = () => {
               <div className="w-2.5 h-2.5 bg-gray-200 rounded-full" />
               <div className="flex items-baseline gap-1">
                 <span className="text-[12px] font-black text-gray-400">未蒐集</span>
-                <span className="text-[12px] font-black text-gray-400">{totalEntries - unlockedCount}</span>
+                <span className="text-[12px] font-black text-gray-400">
+                  {selectedColorKey
+                    ? (CAT_POSES.length - displayedUnlockedCount)
+                    : (totalEntries - unlockedCount)}
+                </span>
               </div>
             </div>
           </div>
