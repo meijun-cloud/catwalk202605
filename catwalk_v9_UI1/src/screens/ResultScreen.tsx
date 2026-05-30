@@ -51,7 +51,14 @@ const ResultScreen: React.FC = () => {
     }
   };
 
-  const dexImage = getCollectionCardCover(lastReport.colorKey, lastReport.poseKey, true);
+  // poseKey === 'other' 時：用使用者自己拍的照片，姿勢文字顯示 poseNote
+  const isOtherPose = lastReport.poseKey === 'other';
+  const dexImage = isOtherPose
+    ? (lastReport.photo || getCollectionCardCover(lastReport.colorKey, lastReport.poseKey, true))
+    : getCollectionCardCover(lastReport.colorKey, lastReport.poseKey, true);
+  const poseDisplay = isOtherPose
+    ? (lastReport.poseNote || '其他')
+    : (pose?.label || '');
   
   return (
     <div className="h-full flex flex-col bg-white font-sans relative overflow-hidden">
@@ -135,7 +142,7 @@ const ResultScreen: React.FC = () => {
               
               <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between">
                  <div className="flex flex-col gap-1.5">
-                    <h2 className="text-2xl font-black text-white leading-tight drop-shadow-lg">{color?.label} × {pose?.label} 🐾</h2>
+                    <h2 className="text-2xl font-black text-white leading-tight drop-shadow-lg">{color?.label} × {poseDisplay} 🐾</h2>
                     <div className="flex items-center gap-1.5 text-white/90 text-[10px] font-black uppercase tracking-[0.1em] bg-black/30 backdrop-blur-md px-3 py-1 rounded-full w-fit border border-white/20">
                       <MapPin size={10} className="text-blue-400" />
                       {locationName}
@@ -172,7 +179,7 @@ const ResultScreen: React.FC = () => {
                <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">📖</div>
                 <div className="flex flex-col">
                   <h3 className="font-black text-sm tracking-tight text-white">新圖鑑條目解鎖！</h3>
-                  <p className="text-[10px] text-white/70 font-medium">{color?.label} × {pose?.label} 已加入你的圖鑑</p>
+                  <p className="text-[10px] text-white/70 font-medium">{color?.label} × {poseDisplay} 已加入你的圖鑑</p>
                 </div>
             </div>
             <ChevronRight size={20} className="text-white/50" />

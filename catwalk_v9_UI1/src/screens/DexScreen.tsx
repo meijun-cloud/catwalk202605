@@ -63,6 +63,25 @@ const DexScreen: React.FC = () => {
       }))
     );
 
+  // 「其他」姿勢的回報：從 reports 中找 poseKey === 'other' 的，依花色篩選後加入
+  const otherEntries = (Array.isArray(reports) ? reports : [])
+    .filter(r => r && r.poseKey === 'other' && (!selectedColorKey || r.colorKey === selectedColorKey) && (!selectedRarity || (CAT_COLORS.find(c => c.key === r.colorKey)?.rarity || 'common') === selectedRarity))
+    .map(r => ({
+      colorKey: r.colorKey,
+      poseKey: 'other' as const,
+      poseNote: (r as any).poseNote || '其他',
+      colorLabel: CAT_COLORS.find(c => c.key === r.colorKey)?.label || r.colorKey,
+      poseLabel: (r as any).poseNote || '其他',
+      rarity: CAT_COLORS.find(c => c.key === r.colorKey)?.rarity || ('common' as const),
+      isUnlocked: true,
+      isOther: true,
+      reportData: r,
+    }));
+  // 去重：同一 colorKey 的 other 只取最新一筆顯示（避免同花色多筆 other 重複顯示一樣的卡）
+  const otherEntriesDeduped = otherEntries.filter((entry, idx, arr) =>
+    arr.findIndex(e => e.colorKey === entry.colorKey) === idx
+  );
+
   // 排序邏輯：全部 → 已解鎖依解鎖時間置頂，個別花色 → 依姿勢順序
   const POSE_ORDER = ['basking', 'curled_sleep', 'walking', 'grooming', 'alert_standing', 'sitting', 'eating'];
   const filteredEntries = filteredEntriesRaw.slice().sort((a, b) => {
@@ -83,6 +102,9 @@ const DexScreen: React.FC = () => {
       return POSE_ORDER.indexOf(a.poseKey) - POSE_ORDER.indexOf(b.poseKey);
     }
   });
+  // 合併 other entries 到顯示列表（排在最後）
+  const allDisplayedEntries = [...filteredEntries, ...otherEntriesDeduped];
+  // 數字統計只算標準 84 張（不含 other）
   const displayedUnlockedCount = filteredEntries.filter(e => e.isUnlocked).length;
   const displayedTotalCount = filteredEntries.length;
 
@@ -270,25 +292,47 @@ const DexScreen: React.FC = () => {
 
           {/* Dex Grid - 2 Columns */}
           <div className="grid grid-cols-2 gap-x-5 gap-y-7 min-h-[200px]">
-            {filteredEntries.length > 0 ? (
-              filteredEntries.map((entry, idx) => {
+            {allDisplayedEntries.length > 0 ? (
+              allDisplayedEntries.map((entry, idx) => {
                 const isUnlocked = entry.isUnlocked;
-                const coverUrl = getCollectionCardCover(entry.colorKey, entry.poseKey, isUnlocked);
+                const isOther = 'isOther' in entry && (entry as any).isOther;
+                const otherPhoto = isOther ? (entry as any).reportData?.photo : null;
+                const coverUrl = isOther && otherPhoto
+                  ? otherPhoto
+                  : getCollectionCardCover(entry.colorKey, entry.poseKey, isUnlocked);
                 const isHighlight = highlightedDexEntry?.colorKey === entry.colorKey && highlightedDexEntry?.poseKey === entry.poseKey;
 
                 return (
                   <motion.div 
-                    key={`${entry.colorKey}-${entry.poseKey}`}
+                    key={`${entry.colorKey}-${entry.poseKey}-${'reportData' in entry ? (entry as any).reportData?.reportId : idx}`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: (idx % 10) * 0.05 }}
                     onClick={() => {
                       if (isUnlocked) {
-                        const entryReports = (reports || [])
-                          .filter(r => r && r.colorKey === entry.colorKey && r.poseKey === entry.poseKey)
-                          .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
-                        const unlockData = (dexUnlocks || []).find(d => d.colorKey === entry.colorKey && d.poseKey === entry.poseKey);
-                        setSelectedEntry({ ...entry, unlockData, reports: entryReports });
+                        if (isOther) {
+                          // other 姿勢：直接用該回報資料
+                          const reportData = (entry as any).reportData;
+                          setSelectedEntry({
+                            ...entry,
+                            poseLabel: (entry as any).poseNote || '其他',
+                            unlockData: {
+                              colorKey: entry.colorKey,
+                              poseKey: 'other',
+                              poseNote: (entry as any).poseNote,
+                              unlockedAt: reportData?.submittedAt || new Date().toISOString(),
+                            },
+                            reports: (reports || [])
+                              .filter(r => r && r.colorKey === entry.colorKey && r.poseKey === 'other')
+                              .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()),
+                          });
+                        } else {
+                          const entryReports = (reports || [])
+                            .filter(r => r && r.colorKey === entry.colorKey && r.poseKey === entry.poseKey)
+                            .sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+                          const unlockData = (dexUnlocks || []).find(d => d.colorKey === entry.colorKey && d.poseKey === entry.poseKey);
+                          setSelectedEntry({ ...entry, unlockData, reports: entryReports });
+                        }
                         setActivePhotoIdx(0);
                       }
                     }}
@@ -390,7 +434,11 @@ const DexScreen: React.FC = () => {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        src={getCollectionCardCover(selectedEntry.colorKey, selectedEntry.poseKey, true)} 
+                        src={
+                          (selectedEntry as any).isOther && (selectedEntry as any).reportData?.photo
+                            ? (selectedEntry as any).reportData.photo
+                            : getCollectionCardCover(selectedEntry.colorKey, selectedEntry.poseKey, true)
+                        }
                         loading="lazy"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = "https://catwalk-v2.vercel.app/assets/collection-page/locked/lock.png";
@@ -402,7 +450,7 @@ const DexScreen: React.FC = () => {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     <div className="absolute bottom-8 left-8 right-8">
                       <RarityBadge rarity={selectedEntry.rarity} className="mb-3 px-4 py-1 shadow-lg" />
-                      <h3 className="text-4xl font-black text-white tracking-tighter drop-shadow-xl">{selectedEntry.colorLabel} × {selectedEntry.poseLabel} 🐾</h3>
+                      <h3 className="text-4xl font-black text-white tracking-tighter drop-shadow-xl">{selectedEntry.colorLabel} × {(selectedEntry as any).isOther ? ((selectedEntry as any).poseNote || '其他') : selectedEntry.poseLabel} 🐾</h3>
                     </div>
 
                     {/* Thumbnail Switcher - Now just for previewing user photos if they want, but the hero stays as the cover? No, the user says "DexDetail 上方主圖 = 正式圖鑑封面圖". So the switcher might not be needed for the hero if it stays static? Actually, the switcher was for user photos. But the requirement says "下方『本次拍攝紀錄 / 所有拍攝照片』才顯示使用者上傳或回報照片". So I should probably remove the hero switcher if it's supposed to stay as the formal cover. */}
