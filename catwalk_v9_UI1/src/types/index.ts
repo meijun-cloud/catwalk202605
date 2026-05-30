@@ -23,7 +23,9 @@ export type Report = {
   photo: string;
   colorKey: string;
   poseKey: string;
+  poseNote?: string;
   environmentKey: string;
+  environmentNote?: string;
   catCount: CatCount['key'];
   submittedAt: string;
   xpEarned: number;
@@ -38,6 +40,7 @@ export type Report = {
 export type DexUnlock = {
   colorKey: string;
   poseKey: string;
+  poseNote?: string;
   unlockedAt: string;
   reportId?: string;
   photo?: string;
@@ -54,7 +57,9 @@ export type ReportDraft = {
   photo: string;
   colorKey?: string;
   poseKey?: string;
+  poseNote?: string;
   environmentKey?: string;
+  environmentNote?: string;
   catCount?: CatCount['key'];
   latitude?: number;
   longitude?: number;
