@@ -46,10 +46,16 @@ const DexScreen: React.FC = () => {
   }, [highlightedDexEntry, dexUnlocks, reports]);
 
   const totalEntries = CAT_COLORS.length * CAT_POSES.length;
-  // 去重：只計算唯一的 colorKey+poseKey 組合（DexUnlocks 可能有重複）
-  const unlockedCount = Array.isArray(dexUnlocks)
-    ? new Set(dexUnlocks.map(d => `${d.colorKey}|${d.poseKey}`)).size
-    : 0;
+  // 全域已解鎖數：從標準84張（不帶任何篩選）直接比對 dexUnlocks
+  // 這確保數字與卡片格子的 isUnlocked 邏輯完全一致
+  const globalUnlockedCount = (CAT_COLORS || []).flatMap(color =>
+    (CAT_POSES || []).map(pose => ({
+      isUnlocked: Array.isArray(dexUnlocks) && dexUnlocks.some(
+        d => d.colorKey === color.key && d.poseKey === pose.key
+      )
+    }))
+  ).filter(e => e.isUnlocked).length;
+  const unlockedCount = globalUnlockedCount;
   const percentage = Math.round((unlockedCount / (totalEntries || 1)) * 100);
 
   // Filter entries based on selected color and rarity
