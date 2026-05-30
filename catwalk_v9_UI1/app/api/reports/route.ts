@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
-      nickname, photoUrl, colorKey, poseKey, environmentKey, catCount,
+      nickname, photoUrl, colorKey, poseKey, poseNote, environmentKey, environmentNote, catCount,
       latitude, longitude, existingDexUnlocks, currentTotalXp, userPageId,
     } = body;
 
@@ -149,7 +149,25 @@ export async function POST(req: NextRequest) {
     // Notion API 會自動建立新 select 選項，不需預先設定
     if (poseName)  reportProps.pose      = { select: { name: poseName  } };
     if (countName) reportProps.cat_count = { select: { name: countName } };
-    // environment 欄位在此 DB 不存在，不寫入
+
+    // environment：存在於此 DB，中文值；若 other 則寫入「其他」
+    const envName = environmentKey === 'other' ? '其他' : (ENV_LABELS[environmentKey] ?? environmentKey ?? '');
+    if (envName) reportProps.environment = { select: { name: envName } };
+
+    // pose_note：使用者自填（poseKey === 'other' 時才有值）
+    if (poseKey === 'other' && poseNote) {
+      reportProps.pose_note = { rich_text: [{ text: { content: String(poseNote) } }] };
+    }
+
+    // environment_note：使用者自填（environmentKey === 'other' 時才有值）
+    if (environmentKey === 'other' && environmentNote) {
+      reportProps.environment_note = { rich_text: [{ text: { content: String(environmentNote) } }] };
+    }
+
+    // Location：GPS 逆地理編碼取得的地區名稱
+    if (locationName) {
+      reportProps['Location'] = { rich_text: [{ text: { content: locationName } }] };
+    }
 
     const reportRes = await fetch('https://api.notion.com/v1/pages', {
       method: 'POST', headers: H,
@@ -231,8 +249,11 @@ export async function GET(req: NextRequest) {
         photo:          p['photo']?.url ?? null,
         colorKey:       p['color_key']?.rich_text?.[0]?.plain_text ?? '',
         poseKey:        p['pose']?.select?.name ?? '',
-        environmentKey: '',
+        poseNote:       p['pose_note']?.rich_text?.[0]?.plain_text ?? undefined,
+        environmentKey: p['environment']?.select?.name ?? '',
+        environmentNote:p['environment_note']?.rich_text?.[0]?.plain_text ?? undefined,
         catCount:       p['cat_count']?.select?.name ?? '',
+        locationName:   p['Location']?.rich_text?.[0]?.plain_text ?? '',
         xpEarned:       p['xp_earned']?.number ?? 0,
         latitude:       p['latitude']?.number ?? null,
         longitude:      p['longitude']?.number ?? null,
