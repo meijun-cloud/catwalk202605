@@ -12,6 +12,16 @@ const ConfirmReportScreen: React.FC = () => {
   const environment = ENVIRONMENTS.find(e => e.key === reportDraft?.environmentKey);
   const count = CAT_COUNTS.find(c => c.key === reportDraft?.catCount);
 
+  // 姿勢顯示：若選 other 則用 poseNote
+  const poseDisplay = reportDraft?.poseKey === 'other'
+    ? (reportDraft?.poseNote || '其他')
+    : (pose?.label || '未選擇');
+
+  // 環境顯示：若選 other 則用 environmentNote
+  const envDisplay = reportDraft?.environmentKey === 'other'
+    ? (reportDraft?.environmentNote || '其他')
+    : (environment?.label || '未選擇');
+
   const SummaryItem = ({ icon, label, value, onEdit }: { icon: string, label: string, value: string, onEdit: () => void }) => (
     <div className="flex items-center justify-between py-3">
       <div className="flex items-center gap-4">
@@ -42,15 +52,13 @@ const ConfirmReportScreen: React.FC = () => {
           className="w-full h-full object-cover" 
           alt="Background" 
         />
-        {/* Bottom Soft White Misty Gradient */}
         <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-t from-white via-white/60 to-transparent opacity-80" />
-        {/* Edge blurring for softness */}
         <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px]" />
       </div>
 
       {/* Main Content - Scrollable */}
       <main className="flex-1 overflow-y-auto z-10 no-scrollbar pb-56">
-        {/* Header - Moved inside scrollable area */}
+        {/* Header */}
         <header className="px-6 pt-12 pb-6 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <button onClick={() => navigateTo('Environment')} className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-gray-800 transition-transform active:scale-90">
@@ -97,13 +105,13 @@ const ConfirmReportScreen: React.FC = () => {
             <SummaryItem 
               icon="✨" 
               label="姿勢" 
-              value={pose?.label || '未選擇'} 
+              value={poseDisplay} 
               onEdit={() => navigateTo('CatSelect')} 
             />
             <SummaryItem 
               icon="🏘️" 
               label="環境" 
-              value={environment?.label || '未選擇'} 
+              value={envDisplay} 
               onEdit={() => navigateTo('Environment')} 
             />
             <SummaryItem 

@@ -1,16 +1,70 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 import { ENVIRONMENTS, CAT_COUNTS } from '../constants';
 import { motion } from 'motion/react';
 
 const EnvironmentScreen: React.FC = () => {
   const { reportDraft, updateDraft, navigateTo } = useApp();
+  const [showEnvOtherModal, setShowEnvOtherModal] = useState(false);
+  const [envOtherInput, setEnvOtherInput] = useState(reportDraft?.environmentNote ?? '');
 
   const canContinue = !!reportDraft?.environmentKey && !!reportDraft?.catCount;
 
+  const handleEnvOtherConfirm = () => {
+    if (envOtherInput.trim()) {
+      updateDraft({ environmentKey: 'other', environmentNote: envOtherInput.trim() });
+    }
+    setShowEnvOtherModal(false);
+  };
+
+  const handleEnvOtherOpen = () => {
+    setEnvOtherInput(reportDraft?.environmentNote ?? '');
+    setShowEnvOtherModal(true);
+  };
+
   return (
     <div className="h-full flex flex-col bg-[#f8fafc] font-sans relative overflow-hidden">
+
+      {/* "其他環境" Modal */}
+      {showEnvOtherModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-6">
+          <div className="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-black text-gray-800">其他環境</h3>
+              <button onClick={() => setShowEnvOtherModal(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <X size={14} className="text-gray-500" />
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mb-3">請用文字描述貓咪所在的環境</p>
+            <input
+              autoFocus
+              type="text"
+              value={envOtherInput}
+              onChange={e => setEnvOtherInput(e.target.value)}
+              placeholder="例如：廢棄工廠"
+              maxLength={30}
+              className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm font-bold text-gray-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-gray-50"
+            />
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => setShowEnvOtherModal(false)}
+                className="flex-1 h-12 rounded-full border border-gray-200 bg-white text-gray-400 font-bold text-sm"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleEnvOtherConfirm}
+                disabled={!envOtherInput.trim()}
+                className={`flex-[2] h-12 rounded-full font-black text-sm text-white transition-all ${envOtherInput.trim() ? 'bg-blue-500' : 'bg-gray-300'}`}
+              >
+                確認
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Background Illustration */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <img 
@@ -18,15 +72,13 @@ const EnvironmentScreen: React.FC = () => {
           className="w-full h-full object-cover" 
           alt="Background" 
         />
-        {/* Bottom Soft White Misty Gradient */}
         <div className="absolute inset-x-0 bottom-0 h-full bg-gradient-to-t from-white via-white/60 to-transparent opacity-80" />
-        {/* Edge blurring for softness */}
         <div className="absolute inset-0 bg-white/10 backdrop-blur-[1px]" />
       </div>
 
       {/* Main Content - Scrollable */}
       <main className="flex-1 overflow-y-auto z-10 no-scrollbar pb-48">
-        {/* Header - Moved inside scrollable area */}
+        {/* Header */}
         <header className="px-6 pt-12 pb-6 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <button onClick={() => navigateTo('CatSelect')} className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-gray-800 transition-transform active:scale-90">
@@ -58,74 +110,95 @@ const EnvironmentScreen: React.FC = () => {
             <div className="absolute bottom-2 left-4 px-2 py-0.5 bg-white/40 backdrop-blur-md rounded-full text-white text-[8px] font-bold uppercase">已選擇的照片</div>
           </section>
 
-        {/* Section A: Environment */}
-        <section className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/50">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-2 h-2 bg-blue-500 rounded-full" />
-            <h2 className="text-sm font-bold text-gray-800">A 請選擇環境 <span className="ml-2 text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full uppercase">必填</span></h2>
-          </div>
-          
-          <div className="grid grid-cols-5 gap-2">
-            {ENVIRONMENTS.map(env => (
+          {/* Section A: Environment */}
+          <section className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/50">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-2 bg-blue-500 rounded-full" />
+              <h2 className="text-sm font-bold text-gray-800">A 請選擇環境 <span className="ml-2 text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full uppercase">必填</span></h2>
+            </div>
+            
+            {/* 5 cols grid，原本 10 個選項 + 新增 1 個「其他」= 11 個，跑兩行+1 */}
+            <div className="grid grid-cols-5 gap-2">
+              {ENVIRONMENTS.map(env => (
+                <button
+                  key={env.key}
+                  onClick={() => updateDraft({ environmentKey: env.key, environmentNote: undefined })}
+                  className={`flex flex-col items-center gap-1.5 p-1.5 rounded-xl transition-all duration-300 relative ${reportDraft?.environmentKey === env.key ? 'bg-blue-50 shadow-inner' : 'hover:bg-gray-50'}`}
+                >
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-all duration-300 ${reportDraft?.environmentKey === env.key ? 'scale-110' : ''}`}>
+                    {env.key === 'alley' && '🏘️'}
+                    {env.key === 'parking' && '🚗'}
+                    {env.key === 'park' && '🌳'}
+                    {env.key === 'mountain' && '⛰️'}
+                    {env.key === 'temple' && '⛩️'}
+                    {env.key === 'arcade' && '🏛️'}
+                    {env.key === 'market' && '🥬'}
+                    {env.key === 'wall' && '🧱'}
+                    {env.key === 'shop' && '🏪'}
+                    {env.key === 'station' && '🚉'}
+                  </div>
+                  <span className={`text-[9px] font-bold text-center leading-tight h-5 flex items-center ${reportDraft?.environmentKey === env.key ? 'text-blue-600' : 'text-gray-500'}`}>{env.label}</span>
+                  {reportDraft?.environmentKey === env.key && (
+                    <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center border border-white shadow-sm">
+                      <Check size={6} className="text-white" strokeWidth={4} />
+                    </div>
+                  )}
+                </button>
+              ))}
+
+              {/* 其他 button */}
               <button
-                key={env.key}
-                onClick={() => updateDraft({ environmentKey: env.key })}
-                className={`flex flex-col items-center gap-1.5 p-1.5 rounded-xl transition-all duration-300 relative ${reportDraft?.environmentKey === env.key ? 'bg-blue-50 shadow-inner' : 'hover:bg-gray-50'}`}
+                onClick={handleEnvOtherOpen}
+                className={`flex flex-col items-center gap-1.5 p-1.5 rounded-xl transition-all duration-300 relative ${reportDraft?.environmentKey === 'other' ? 'bg-blue-50 shadow-inner' : 'hover:bg-gray-50'}`}
               >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-all duration-300 ${reportDraft?.environmentKey === env.key ? 'scale-110' : ''}`}>
-                  {env.key === 'alley' && '🏘️'}
-                  {env.key === 'parking' && '🚗'}
-                  {env.key === 'park' && '🌳'}
-                  {env.key === 'mountain' && '⛰️'}
-                  {env.key === 'temple' && '⛩️'}
-                  {env.key === 'arcade' && '🏛️'}
-                  {env.key === 'market' && '🥬'}
-                  {env.key === 'wall' && '🧱'}
-                  {env.key === 'shop' && '🏪'}
-                  {env.key === 'station' && '🚉'}
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-all duration-300 bg-gray-100 ${reportDraft?.environmentKey === 'other' ? 'scale-110' : ''}`}>
+                  ✏️
                 </div>
-                <span className={`text-[9px] font-bold text-center leading-tight h-5 flex items-center ${reportDraft?.environmentKey === env.key ? 'text-blue-600' : 'text-gray-500'}`}>{env.label}</span>
-                {reportDraft?.environmentKey === env.key && (
+                <span className={`text-[9px] font-bold text-center leading-tight h-5 flex items-center ${reportDraft?.environmentKey === 'other' ? 'text-blue-600' : 'text-gray-500'}`}>
+                  {reportDraft?.environmentKey === 'other' && reportDraft?.environmentNote
+                    ? reportDraft.environmentNote.length > 4 ? reportDraft.environmentNote.slice(0, 4) + '…' : reportDraft.environmentNote
+                    : '其他'}
+                </span>
+                {reportDraft?.environmentKey === 'other' && (
                   <div className="absolute top-0.5 right-0.5 w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center border border-white shadow-sm">
                     <Check size={6} className="text-white" strokeWidth={4} />
                   </div>
                 )}
               </button>
-            ))}
-          </div>
-        </section>
+            </div>
+          </section>
 
-        {/* Section B: Cat Count */}
-        <section className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/50">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-2 h-2 bg-blue-500 rounded-full" />
-            <h2 className="text-sm font-bold text-gray-800">B 請選擇數量 <span className="ml-2 text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full uppercase">必填</span></h2>
-          </div>
+          {/* Section B: Cat Count */}
+          <section className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] shadow-xl border border-white/50">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-2 h-2 bg-blue-500 rounded-full" />
+              <h2 className="text-sm font-bold text-gray-800">B 請選擇數量 <span className="ml-2 text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full uppercase">必填</span></h2>
+            </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            {CAT_COUNTS.map(count => (
-              <button
-                key={count.key}
-                onClick={() => updateDraft({ catCount: count.key })}
-                className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all duration-300 relative border-2 ${reportDraft?.catCount === count.key ? 'bg-blue-50 border-blue-200' : 'bg-gray-50/50 border-transparent'}`}
-              >
-                <div className="text-2xl">
-                  {count.key === 'one' && '🐱'}
-                  {count.key === 'two_three' && '🐱🐱'}
-                  {count.key === 'four_plus' && '🐱🐱🐱'}
-                </div>
-                <span className={`text-xs font-bold ${reportDraft?.catCount === count.key ? 'text-blue-600' : 'text-gray-500'}`}>{count.label}</span>
-                {reportDraft?.catCount === count.key && (
-                  <div className="absolute -top-2 -right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
-                    <Check size={10} className="text-white" strokeWidth={4} />
+            <div className="grid grid-cols-3 gap-3">
+              {CAT_COUNTS.map(count => (
+                <button
+                  key={count.key}
+                  onClick={() => updateDraft({ catCount: count.key })}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all duration-300 relative border-2 ${reportDraft?.catCount === count.key ? 'bg-blue-50 border-blue-200' : 'bg-gray-50/50 border-transparent'}`}
+                >
+                  <div className="text-2xl">
+                    {count.key === 'one' && '🐱'}
+                    {count.key === 'two_three' && '🐱🐱'}
+                    {count.key === 'four_plus' && '🐱🐱🐱'}
                   </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </section>
+                  <span className={`text-xs font-bold ${reportDraft?.catCount === count.key ? 'text-blue-600' : 'text-gray-500'}`}>{count.label}</span>
+                  {reportDraft?.catCount === count.key && (
+                    <div className="absolute -top-2 -right-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                      <Check size={10} className="text-white" strokeWidth={4} />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </section>
 
-        <p className="text-[11px] text-center text-gray-700 font-bold">ℹ️ 兩項皆為必填，完成後才能進入下一步</p>
+          <p className="text-[11px] text-center text-gray-700 font-bold">ℹ️ 兩項皆為必填，完成後才能進入下一步</p>
         </div>
       </main>
 
