@@ -46,7 +46,10 @@ const DexScreen: React.FC = () => {
   }, [highlightedDexEntry, dexUnlocks, reports]);
 
   const totalEntries = CAT_COLORS.length * CAT_POSES.length;
-  const unlockedCount = Array.isArray(dexUnlocks) ? dexUnlocks.length : 0;
+  // 去重：只計算唯一的 colorKey+poseKey 組合（DexUnlocks 可能有重複）
+  const unlockedCount = Array.isArray(dexUnlocks)
+    ? new Set(dexUnlocks.map(d => `${d.colorKey}|${d.poseKey}`)).size
+    : 0;
   const percentage = Math.round((unlockedCount / (totalEntries || 1)) * 100);
 
   // Filter entries based on selected color and rarity
