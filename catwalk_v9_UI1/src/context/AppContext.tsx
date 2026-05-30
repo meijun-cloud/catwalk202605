@@ -8,6 +8,7 @@ import { getLevelFromXp } from '../services/xpService';
 const DEFAULT_USER: UserState = {
   nickname: '小貓探險家',
   displayName: '小貓探險家',
+  email: '',
   totalXp: 0,
   currentLevel: 1,
   currentTitle: '巷口新貓友',
@@ -110,11 +111,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         currentLevel: levelInfo.level, currentTitle: levelInfo.title,
       }));
       setUserPageId(data.pageId);
-      // 載入歷史資料
+      // 載入歷史資料（以 email 為主鍵，涵蓋所有歷史 nickname）
       try {
         const [rRes, dRes] = await Promise.all([
-          fetch(`/api/reports?nickname=${encodeURIComponent(nickname)}`),
-          fetch(`/api/dex?nickname=${encodeURIComponent(nickname)}`),
+          fetch(`/api/reports?email=${encodeURIComponent(email)}`),
+          fetch(`/api/dex?email=${encodeURIComponent(email)}`),
         ]);
         const rData = await rRes.json();
         const dData = await dRes.json();
