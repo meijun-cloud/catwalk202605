@@ -166,7 +166,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         body: JSON.stringify({
           nickname: user.nickname, photoUrl,
           colorKey: reportDraft.colorKey, poseKey: reportDraft.poseKey,
-          environmentKey: reportDraft.environmentKey, catCount: reportDraft.catCount,
+          poseNote: reportDraft.poseNote,
+          environmentKey: reportDraft.environmentKey, environmentNote: reportDraft.environmentNote,
+          catCount: reportDraft.catCount,
           latitude: reportDraft.latitude ?? 25.0478, longitude: reportDraft.longitude ?? 121.5170,
           existingDexUnlocks: dexUnlocks, currentTotalXp: user.totalXp, userPageId,
         }),
@@ -196,6 +198,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isLevelUp,
         captureCount,
         locationName: result.locationName ?? '',
+        poseNote: reportDraft.poseNote,
+        environmentNote: reportDraft.environmentNote,
         location: {
           latitude: reportDraft.latitude ?? 25.0478,
           longitude: reportDraft.longitude ?? 121.5170,
