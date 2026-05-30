@@ -3,7 +3,7 @@ export const collectionCoverMap: Record<string, Record<string, string>> = {
   calico: {
     sunbathing: "https://catwalk-v2.vercel.app/assets/collection-page/calico/calico_sunbathing.jpg",
     sleep: "https://catwalk-v2.vercel.app/assets/collection-page/calico/calico_sleep.jpg",
-    walking: "https://catwalk-v2.vercel.app/assets/collection-page/calico/calico_walking.jpg",
+    walking: "https://catwalk-v2.vercel.app/assets/collection-page/calico/calico_walk.jpg",
     grooming: "https://catwalk-v2.vercel.app/assets/collection-page/calico/calico_grooming.jpg",
     standAlert: "https://catwalk-v2.vercel.app/assets/collection-page/calico/calico_stand-alert.jpg",
     sitIdle: "https://catwalk-v2.vercel.app/assets/collection-page/calico/calico_sit-idle.jpg",
