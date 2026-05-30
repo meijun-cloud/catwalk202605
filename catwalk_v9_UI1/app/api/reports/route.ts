@@ -226,15 +226,38 @@ export async function GET(req: NextRequest) {
   if (!NOTION_API_KEY || !REPORTS_DB) {
     return NextResponse.json({ error: 'Notion not configured' }, { status: 500 });
   }
-  const nickname = new URL(req.url).searchParams.get('nickname');
-  if (!nickname) return NextResponse.json({ error: 'nickname required' }, { status: 400 });
+  const url = new URL(req.url);
+  const email = url.searchParams.get('email');
+  const nickname = url.searchParams.get('nickname');
+
+  // 取得所有 nickname（以 email 查 Users，取所有歷史筆數）
+  let nicknames: string[] = [];
+  if (email) {
+    try {
+      const usersRes = await fetch(`https://api.notion.com/v1/databases/${process.env.NOTION_USERS_DB_ID}/query`, {
+        method: 'POST', headers: H,
+        body: JSON.stringify({ filter: { property: 'email', email: { equals: email } } }),
+      });
+      const usersData = await usersRes.json();
+      nicknames = (usersData.results ?? [])
+        .map((p: any) => p.properties.nickname.title[0]?.plain_text)
+        .filter(Boolean);
+    } catch { /* fallback 到 nickname */ }
+  }
+  if (nicknames.length === 0 && nickname) nicknames = [nickname];
+  if (nicknames.length === 0) return NextResponse.json({ error: 'email or nickname required' }, { status: 400 });
+
+  // OR filter（涵蓋所有 nickname）
+  const filter = nicknames.length === 1
+    ? { property: 'user_nickname', rich_text: { equals: nicknames[0] } }
+    : { or: nicknames.map(n => ({ property: 'user_nickname', rich_text: { equals: n } })) };
 
   try {
     const res = await fetch(`https://api.notion.com/v1/databases/${REPORTS_DB}/query`, {
       method: 'POST', headers: H,
       body: JSON.stringify({
         page_size: 100,
-        filter: { property: 'user_nickname', rich_text: { equals: nickname } },
+        filter,
         sorts: [{ timestamp: 'created_time', direction: 'descending' }],
       }),
       cache: 'no-store',
